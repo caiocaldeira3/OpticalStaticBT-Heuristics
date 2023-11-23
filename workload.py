@@ -52,5 +52,6 @@ for test in range(n_tests):
         seq.append((src, dst))
 
     with open(f"input/{weight_name}-{test}.txt", "w") as fo:
+        fo.write(f"{n_vertices} {n_messages}\n")
         for src, dst in seq:
-            fo.write(f"{src},{dst}\n")
+            fo.write(f"{src} {dst}\n")
