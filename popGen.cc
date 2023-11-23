@@ -7,7 +7,7 @@
 int main (int argc, char* argv[]) {
     srand(42);
 
-    if (argc == 1) {
+    if (argc != 2) {
         std::cout << "number of vertices need to be provide" << std::endl;
         throw;
 
