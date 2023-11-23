@@ -2,8 +2,8 @@
 #include <fstream>
 #include <string>
 #include <filesystem>
-#include "include/greedy.hh"
-#include "include/bbst.hh"
+#include "greedy.hh"
+#include "bbst.hh"
 
 
 int main (int argc, char* argv[]) {

@@ -2,9 +2,8 @@ CC := g++
 SRCDIR := src
 BINDIR := bin
 
-MAIN := main.cc
-POP := popGen.cc
-VALIDATE := validate.cc
+MAIN := $(SRCDIR)/main.cc
+POP := $(SRCDIR)/popGen.cc
 
 CFLAGS := -std=c++17
 
