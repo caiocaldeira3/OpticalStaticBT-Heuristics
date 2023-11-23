@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <set>
 #include <queue>
 
 
@@ -46,4 +47,54 @@ bool isValidBinaryTree (const std::vector<int>& pred) {
     }
 
     return true;
+}
+
+void computeDistances (
+    int nVertices, const std::vector<std::vector<int>>& tree, std::vector<std::vector<int>>& distances
+) {
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        std::queue<std::pair<int, std::pair<int, int>>> vis;
+        vis.push({ 0, { vIdx, -1 } });
+
+        while (!vis.empty()) {
+            auto [cost, vertices] = vis.front(); vis.pop();
+            auto [cV, lV] = vertices;
+            distances[vIdx][cV] = cost;
+
+            for (int nV: tree[cV]) {
+                if (nV == lV)
+                    continue;
+
+                vis.push({ cost + 1, { nV, cV } });
+
+            }
+        }
+    }
+}
+
+int treeCost (const std::vector<int>& preds, const std::vector<query>& queries) {
+    int nVertices = preds.size();
+    std::vector<std::vector<int>> distances(nVertices, std::vector<int>(nVertices, INF));
+    std::vector<std::vector<int>> tree(nVertices);
+    int root;
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        if (preds[vIdx] == -1) {
+            root = vIdx;
+
+        } else {
+            tree[preds[vIdx]].push_back(vIdx);
+            tree[vIdx].push_back(preds[vIdx]);
+
+        }
+    }
+
+    computeDistances(nVertices, tree, distances);
+    int totalCost = 0;
+
+    for (query qry: queries) {
+        totalCost += distances[qry.first][qry.second];
+
+    }
+
+    return totalCost;
 }

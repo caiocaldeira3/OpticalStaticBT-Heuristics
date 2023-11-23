@@ -47,8 +47,8 @@ int main (int argc, char* argv[]) {
     }
     gPredsFile << std::endl;
 
-    std::ofstream costsFile("output/" + locality + "/greedy_costs.out", std::ios_base::app);
-    costsFile << totalCost << std::endl;
+    std::ofstream gCostsFile("output/" + locality + "/greedy_costs.out", std::ios_base::app);
+    gCostsFile << totalCost << std::endl;
 
     std::vector<int> bTree(nVertices);
     buildBalancedBST(0, nVertices, bTree);
@@ -62,5 +62,8 @@ int main (int argc, char* argv[]) {
         bPredsFile << bTree[vIdx];
     }
     bPredsFile << std::endl;
+
+    std::ofstream bCostsFile("output/" + locality + "/bbst_costs.out", std::ios_base::app);
+    bCostsFile << treeCost(bTree, queries) << std::endl;
 
 }
