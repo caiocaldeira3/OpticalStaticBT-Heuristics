@@ -39,9 +39,12 @@ for test in range(n_tests):
                 np.random.choice([error, -error]))
             )
 
-    og_probs = np.array(og_probs) / np.linalg.norm(og_probs)
+    og_probs = np.array(og_probs) / np.sum(og_probs)
     cur_probs = og_probs.copy()
     seq = []
+
+    same_as_last = 0
+    last = -1
 
     for _ in range(n_messages):
         chosen, src, dst = random.choices(pairs, weights=cur_probs)[0]
@@ -49,6 +52,10 @@ for test in range(n_tests):
         cur_probs = og_probs.copy() * (1 - temporal)
         cur_probs[chosen] += temporal
 
+        if chosen == last:
+            same_as_last += 1
+
+        last = chosen
         seq.append((src, dst))
 
     with open(f"input/{weight_name}-{test}.txt", "w") as fo:
