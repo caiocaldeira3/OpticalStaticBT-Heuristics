@@ -3,6 +3,7 @@
 #include <string>
 #include <filesystem>
 #include "include/greedy.hh"
+#include "include/bbst.hh"
 
 
 int main (int argc, char* argv[]) {
@@ -30,22 +31,36 @@ int main (int argc, char* argv[]) {
 
     }
 
-    std::vector<int> tree = greedyConstructor(queries, nVertices, totalCost);
+    std::vector<int> gTree = greedyConstructor(queries, nVertices, totalCost);
 
     namespace fs = std::filesystem;
-    fs::create_directories("output/" + locality + "/");
+    fs::create_directories("output/" + locality + "/greedy/");
+    fs::create_directories("output/" + locality + "/bbst/");
 
-    std::ofstream predFile("output/" + locality + "/" + std::to_string(testNumber) + ".out");
+    std::ofstream gPredsFile("output/" + locality + "/greedy/" + std::to_string(testNumber) + ".out");
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         if (vIdx != 0) {
-            predFile << ",";
+            gPredsFile << ",";
         }
 
-        predFile << tree[vIdx];
+        gPredsFile << gTree[vIdx];
     }
-    predFile << std::endl;
+    gPredsFile << std::endl;
 
-    std::ofstream costsFile("output/" + locality + "_costs.out", std::ios_base::app);
+    std::ofstream costsFile("output/" + locality + "/greedy_costs.out", std::ios_base::app);
     costsFile << totalCost << std::endl;
+
+    std::vector<int> bTree(nVertices);
+    buildBalancedBST(0, nVertices, bTree);
+
+    std::ofstream bPredsFile("output/" + locality + "/bbst/" + std::to_string(nVertices) + "_bbst.out");
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        if (vIdx != 0) {
+            bPredsFile << ",";
+        }
+
+        bPredsFile << bTree[vIdx];
+    }
+    bPredsFile << std::endl;
 
 }
