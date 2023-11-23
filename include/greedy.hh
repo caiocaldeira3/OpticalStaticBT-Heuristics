@@ -2,8 +2,6 @@
 
 #include <map>
 #include <vector>
-#include <random>
-#include <chrono>
 #include <cstdlib>
 #include <assert.h>
 #include <algorithm>
@@ -80,11 +78,8 @@ void insertVertexGreedily (
 }
 
 std::vector<int> greedyConstructor (
-    std::vector<query> queries, const int nVertices, int& totalCost, bool shuffle = false
+    std::vector<query> queries, const int nVertices, int& totalCost
 ) {
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    srand(seed);
-
     std::vector<std::vector<int>> distances(nVertices, std::vector<int>(nVertices, 0));
     std::vector<std::vector<int>> occ(nVertices, std::vector<int>(nVertices, 0));
     std::vector<int> pred(nVertices, INF);
@@ -95,11 +90,6 @@ std::vector<int> greedyConstructor (
     for (const auto [src, dst]: queries) {
         occ[src][dst]++;
         occ[dst][src]++;
-
-    }
-
-    if (shuffle) {
-        std::shuffle(queries.begin(), queries.end(), std::default_random_engine(seed));
 
     }
 

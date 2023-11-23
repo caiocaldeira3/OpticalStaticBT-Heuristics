@@ -1,13 +1,20 @@
+#include <filesystem>
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 #include <string>
-#include <filesystem>
+#include <random>
+#include <chrono>
+#include "huffman.hh"
 #include "greedy.hh"
 #include "bbst.hh"
 
 
 int main (int argc, char* argv[]) {
-    if (argc != 2) {
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    srand(seed);
+
+    if (argc < 2) {
         std::cout << "filename inputName" << std::endl;
         throw;
 
@@ -20,9 +27,18 @@ int main (int argc, char* argv[]) {
     int testNumber = std::stoi(inputName.substr(dash + 1, dot - dash - 1));
     std::string locality = inputName.substr(slash, dash - slash);
 
-    std::ifstream iFile(inputName);
+    bool shuffle = false;
+    std::string shuffleArg;
+    if (argc == 3 && "shuffle" == std::string(argv[2])) {
+        shuffle = true;
+        shuffleArg = "shuffle";
+    } else {
+        shuffle = false;
+        shuffleArg = "static";
+    }
 
-    int nVertices, nMessages, totalCost = 0;
+    std::ifstream iFile(inputName);
+    int nVertices, nMessages, gTotalCost = 0, hTotalCost;
     iFile >> nVertices >> nMessages;
 
     std::vector<query> queries(nMessages);
@@ -31,13 +47,21 @@ int main (int argc, char* argv[]) {
 
     }
 
-    std::vector<int> gTree = greedyConstructor(queries, nVertices, totalCost);
+    if (shuffle) {
+        std::shuffle(queries.begin(), queries.end(), std::default_random_engine(seed));
+
+    }
 
     namespace fs = std::filesystem;
-    fs::create_directories("output/" + locality + "/greedy/");
-    fs::create_directories("output/" + locality + "/bbst/");
+    fs::create_directories("output/" + locality + "/" + shuffleArg + "/huffman/");
+    fs::create_directories("output/" + locality + "/" + shuffleArg + "/greedy/");
+    fs::create_directories("output/" + locality + "/" + shuffleArg + "/bbst/");
 
-    std::ofstream gPredsFile("output/" + locality + "/greedy/" + std::to_string(testNumber) + ".out");
+    std::ofstream gPredsFile(
+        "output/" + locality + "/" + shuffleArg + "/greedy/" + std::to_string(testNumber) + ".out"
+    );
+    std::vector<int> gTree = greedyConstructor(queries, nVertices, gTotalCost);
+
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         if (vIdx != 0) {
             gPredsFile << ",";
@@ -47,15 +71,40 @@ int main (int argc, char* argv[]) {
     }
     gPredsFile << std::endl;
 
-    std::ofstream gCostsFile("output/" + locality + "/greedy_costs.out", std::ios_base::app);
-    gCostsFile << totalCost << std::endl;
+    std::ofstream gCostsFile(
+        "output/" + locality + "/" + shuffleArg + "/greedy_costs.out", std::ios_base::app
+    );
+    gCostsFile << gTotalCost << std::endl;
 
-    assert (totalCost == treeCost(gTree, queries));
+    assert (gTotalCost == treeCost(gTree, queries));
+
+    std::ofstream hPredFile(
+        "output/" + locality + "/" + shuffleArg + "/huffman/" + std::to_string(testNumber) + ".out"
+    );
+    std::vector<int> hTree = huffmanHeuristic(queries, nVertices, hTotalCost);
+
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        if (vIdx != 0) {
+            hPredFile << ",";
+        }
+
+        hPredFile << hTree[vIdx];
+    }
+    hPredFile << std::endl;
+
+    std::ofstream hCostsFile(
+        "output/" + locality + "/" + shuffleArg + "/huffman_costs.out", std::ios_base::app
+    );
+    hCostsFile << hTotalCost << std::endl;
+
+    assert (hTotalCost == treeCost(hTree, queries));
 
     std::vector<int> bTree(nVertices);
     buildBalancedBST(0, nVertices, bTree);
 
-    std::ofstream bPredsFile("output/" + locality + "/bbst/" + std::to_string(nVertices) + "_bbst.out");
+    std::ofstream bPredsFile(
+        "output/" + locality + "/" + shuffleArg + "/bbst/" + std::to_string(nVertices) + "_bbst.out"
+    );
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         if (vIdx != 0) {
             bPredsFile << ",";
@@ -65,7 +114,9 @@ int main (int argc, char* argv[]) {
     }
     bPredsFile << std::endl;
 
-    std::ofstream bCostsFile("output/" + locality + "/bbst_costs.out", std::ios_base::app);
+    std::ofstream bCostsFile(
+        "output/" + locality + "/" + shuffleArg + "/bbst_costs.out", std::ios_base::app
+    );
     bCostsFile << treeCost(bTree, queries) << std::endl;
 
 }
