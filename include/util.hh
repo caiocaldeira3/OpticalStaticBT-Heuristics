@@ -2,6 +2,10 @@
 #include <vector>
 #include <queue>
 
+
+static const int INF = 0x3f3f3f3f;
+typedef std::pair<int,int> query;
+
 bool isValidBinaryTree (const std::vector<int>& pred) {
     std::vector<std::vector<int>> tree = std::vector<std::vector<int>>(
         pred.size(), std::vector<int>()
