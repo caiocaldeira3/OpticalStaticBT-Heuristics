@@ -44,6 +44,9 @@ void insertVertexGreedily (
         int cCost = 0;
 
         for (int dst = 0; dst < occs[vIdx].size(); dst++) {
+            if (pred[dst] == INF)
+                continue;
+
             cCost += (distances[leaf][dst] + 1) * occs[vIdx][dst];
 
         }
@@ -68,10 +71,12 @@ void insertVertexGreedily (
     pred[vIdx] = pIdx;
     rank[vIdx] = rank[pIdx] + 1;
     for (int dst = 0; dst < occs[vIdx].size(); dst++) {
+        if (pred[dst] == INF || vIdx == dst)
+            continue;
+
         distances[vIdx][dst] = distances[pIdx][dst] + 1;
-
+        distances[dst][vIdx] = distances[dst][pIdx] + 1;
     }
-
 }
 
 std::vector<int> greedyConstructor (

@@ -50,6 +50,8 @@ int main (int argc, char* argv[]) {
     std::ofstream gCostsFile("output/" + locality + "/greedy_costs.out", std::ios_base::app);
     gCostsFile << totalCost << std::endl;
 
+    assert (totalCost == treeCost(gTree, queries));
+
     std::vector<int> bTree(nVertices);
     buildBalancedBST(0, nVertices, bTree);
 
