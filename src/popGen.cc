@@ -40,14 +40,9 @@ int main (int argc, char* argv[]) {
             "pop/" + std::to_string(nVertices) + "_" + std::to_string(popIdx) + ".txt"
         );
 
-        outFile << nVertices << "," << root << std::endl;
         for (int node = 0; node < nVertices; node++) {
-            if (node != 0) outFile << ",";
-
-            outFile << preds[node];
+            outFile << preds[node] << std::endl;
 
         }
-
-        outFile << std::endl;
     }
 }

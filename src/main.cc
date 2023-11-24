@@ -64,13 +64,8 @@ int main (int argc, char* argv[]) {
     std::vector<int> gTree = greedyConstructor(queries, nVertices, gTotalCost);
 
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        if (vIdx != 0) {
-            gPredsFile << ",";
-        }
-
-        gPredsFile << gTree[vIdx];
+        gPredsFile << gTree[vIdx] << std::endl;
     }
-    gPredsFile << std::endl;
 
     std::ofstream gCostsFile(
         "output/" + locality + "/" + shuffleArg + "/greedy_costs.out", std::ios_base::app
@@ -85,13 +80,8 @@ int main (int argc, char* argv[]) {
     std::vector<int> hTree = huffmanHeuristic(queries, nVertices, hTotalCost);
 
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        if (vIdx != 0) {
-            hPredFile << ",";
-        }
-
-        hPredFile << hTree[vIdx];
+        hPredFile << hTree[vIdx] << std::endl;
     }
-    hPredFile << std::endl;
 
     std::ofstream hCostsFile(
         "output/" + locality + "/" + shuffleArg + "/huffman_costs.out", std::ios_base::app
@@ -107,13 +97,8 @@ int main (int argc, char* argv[]) {
         "output/" + locality + "/" + shuffleArg + "/bbst/" + std::to_string(nVertices) + "_bbst.out"
     );
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        if (vIdx != 0) {
-            bPredsFile << ",";
-        }
-
-        bPredsFile << bTree[vIdx];
+        bPredsFile << bTree[vIdx] << std::endl;
     }
-    bPredsFile << std::endl;
 
     std::ofstream bCostsFile(
         "output/" + locality + "/" + shuffleArg + "/bbst_costs.out", std::ios_base::app
@@ -126,13 +111,8 @@ int main (int argc, char* argv[]) {
     std::vector<int> optBstTree = optimalBST(queries, nVertices, optBstTotalCost);
 
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        if (vIdx != 0) {
-            optBstPredFile << ",";
-        }
-
-        optBstPredFile << optBstTree[vIdx];
+        optBstPredFile << optBstTree[vIdx] << std::endl;
     }
-    optBstPredFile << std::endl;
 
     std::ofstream optBstCostFile(
         "output/" + locality + "/" + shuffleArg + "/optbst_costs.out", std::ios_base::app
