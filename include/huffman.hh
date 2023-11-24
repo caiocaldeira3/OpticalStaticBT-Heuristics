@@ -128,47 +128,6 @@ std::vector<int> huffmanEncoding (int nVertices, const std::vector<query>& queri
     return hRank;
 }
 
-void insertVertex (
-    int vIdx, int& totalCost, std::vector<std::vector<int>>& distances,
-    const std::vector<std::vector<int>>& occs, std::vector<int>& pred,
-    std::priority_queue<
-        std::pair<rankAndTB, leafsAndNode>,
-        std::vector<std::pair<rankAndTB, leafsAndNode>>,
-        CompareHuffmanRank
-    >& leafes
-) {
-    if (pred[vIdx] != INF)
-        return;
-
-    else if (leafes.size() == 0) {
-        pred[vIdx] = -1;
-        leafes.push({{ 0, rand() }, { vIdx, 2 } });
-
-        return;
-
-    }
-
-    auto [ rankTb, leafNode ] = leafes.top(); leafes.pop();
-    if (leafNode.second > 1) {
-        leafes.push({ rankTb, { leafNode.first, leafNode.second - 1 }});
-
-    }
-
-
-    leafes.push({{ rankTb.first + 1, rand() }, { vIdx, 2 }});
-    pred[vIdx] = leafNode.first;
-
-    for (int dst = 0; dst < occs[vIdx].size(); dst++) {
-        if (pred[dst] == INF || vIdx == dst)
-            continue;
-
-        distances[vIdx][dst] = distances[leafNode.first][dst] + 1;
-        distances[dst][vIdx] = distances[dst][leafNode.first] + 1;
-
-        totalCost += distances[vIdx][dst] * occs[vIdx][dst];
-    }
-}
-
 std::vector<int> huffmanHeuristic (
     const std::vector<query>& queries, int nVertices, int& totalCost
 ) {
@@ -196,7 +155,7 @@ std::vector<int> huffmanHeuristic (
 
     while (!nodeRanks.empty()) {
         auto [ rankTB, nodeLeaf ] = nodeRanks.top(); nodeRanks.pop();
-        insertVertex(nodeLeaf.first, totalCost, distances, occs, pred, leafes);
+        insertVertexOnClosestToRoot(nodeLeaf.first, totalCost, distances, occs, pred, leafes);
 
     }
 

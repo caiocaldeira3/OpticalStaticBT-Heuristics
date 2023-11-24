@@ -19,64 +19,6 @@ class CompareRank {
     }
 };
 
-void insertVertexGreedily (
-    int vIdx, int& totalCost, std::map<int, int>& leafes, std::vector<std::vector<int>>& distances,
-    const std::vector<std::vector<int>>& occs, std::vector<int>& pred, std::vector<int>& rank
-) {
-    if (pred[vIdx] != INF)
-        return;
-
-    else if (leafes.size() == 0) {
-        rank[vIdx] = 0;
-        pred[vIdx] = -1;
-        leafes[vIdx] = 2;
-
-        return;
-
-    }
-
-    int pMin = INF;
-    int pIdx = -1;
-
-    for (const auto [leaf, degree]: leafes) {
-        int cCost = 0;
-
-        for (int dst = 0; dst < occs[vIdx].size(); dst++) {
-            if (pred[dst] == INF)
-                continue;
-
-            cCost += (distances[leaf][dst] + 1) * occs[vIdx][dst];
-
-        }
-
-        if (cCost < pMin) {
-            pMin = cCost;
-            pIdx = leaf;
-        }
-    }
-
-    auto it = leafes.find(pIdx);
-    if (it->second == 1) {
-        leafes.erase(it);
-
-    } else {
-        it->second--;
-
-    }
-
-    totalCost += pMin;
-    leafes[vIdx] = 2;
-    pred[vIdx] = pIdx;
-    rank[vIdx] = rank[pIdx] + 1;
-    for (int dst = 0; dst < occs[vIdx].size(); dst++) {
-        if (pred[dst] == INF || vIdx == dst)
-            continue;
-
-        distances[vIdx][dst] = distances[pIdx][dst] + 1;
-        distances[dst][vIdx] = distances[dst][pIdx] + 1;
-    }
-}
-
 std::vector<int> greedyConstructor (
     std::vector<query> queries, const int nVertices, int& totalCost
 ) {
