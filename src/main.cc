@@ -8,7 +8,7 @@
 #include "huffman.hh"
 #include "greedy.hh"
 #include "bbst.hh"
-
+#include "optbst.hh"
 
 int main (int argc, char* argv[]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -38,7 +38,7 @@ int main (int argc, char* argv[]) {
     }
 
     std::ifstream iFile(inputName);
-    int nVertices, nMessages, gTotalCost = 0, hTotalCost;
+    int nVertices, nMessages, gTotalCost = 0, hTotalCost = 0, optBstTotalCost = 0;
     iFile >> nVertices >> nMessages;
 
     std::vector<query> queries(nMessages);
@@ -56,6 +56,7 @@ int main (int argc, char* argv[]) {
     fs::create_directories("output/" + locality + "/" + shuffleArg + "/huffman/");
     fs::create_directories("output/" + locality + "/" + shuffleArg + "/greedy/");
     fs::create_directories("output/" + locality + "/" + shuffleArg + "/bbst/");
+    fs::create_directories("output/" + locality + "/" + shuffleArg + "/optbst/");
 
     std::ofstream gPredsFile(
         "output/" + locality + "/" + shuffleArg + "/greedy/" + std::to_string(testNumber) + ".out"
@@ -118,5 +119,26 @@ int main (int argc, char* argv[]) {
         "output/" + locality + "/" + shuffleArg + "/bbst_costs.out", std::ios_base::app
     );
     bCostsFile << treeCost(bTree, queries) << std::endl;
+
+    std::ofstream optBstPredFile(
+        "output/" + locality + "/" + shuffleArg + "/optbst/" + std::to_string(testNumber) + ".out"
+    );
+    std::vector<int> optBstTree = optimalBST(queries, nVertices, optBstTotalCost);
+
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        if (vIdx != 0) {
+            optBstPredFile << ",";
+        }
+
+        optBstPredFile << optBstTree[vIdx];
+    }
+    optBstPredFile << std::endl;
+
+    std::ofstream optBstCostFile(
+        "output/" + locality + "/" + shuffleArg + "/optbst_costs.out", std::ios_base::app
+    );
+    optBstCostFile << optBstTotalCost << std::endl;
+
+    assert (optBstTotalCost == treeCost(optBstTree, queries));
 
 }
