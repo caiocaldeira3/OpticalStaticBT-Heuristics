@@ -3,6 +3,7 @@
 #include <string>
 #include <cstdlib>
 #include <fstream>
+#include <filesystem>
 
 int main (int argc, char* argv[]) {
     srand(42);
@@ -36,8 +37,11 @@ int main (int argc, char* argv[]) {
             }
         }
 
+        namespace fs = std::filesystem;
+        fs::create_directories("pop/" + std::to_string(nVertices) + "/");
+
         std::ofstream outFile(
-            "pop/" + std::to_string(nVertices) + "_" + std::to_string(popIdx) + ".txt"
+            "pop/" + std::to_string(nVertices) + "/" + std::to_string(popIdx) + ".txt"
         );
 
         for (int node = 0; node < nVertices; node++) {
