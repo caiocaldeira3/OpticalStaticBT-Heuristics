@@ -8,7 +8,7 @@
 static const int INF = 0x3f3f3f3f;
 typedef std::pair<int,int> query;
 
-bool isValidBinaryTree (const std::vector<int>& pred) {
+bool isValidBinaryTree (const std::vector<int>& pred, bool debug = false) {
     std::vector<std::vector<int>> tree = std::vector<std::vector<int>>(
         pred.size(), std::vector<int>()
     );
@@ -30,7 +30,29 @@ bool isValidBinaryTree (const std::vector<int>& pred) {
 
     while (!q.empty()) {
         int cV = q.front(); q.pop();
-        if (cV == -1 || visited[cV] || tree[cV].size() > 2) {
+        if (cV == -1) {
+            if (debug)
+                std::cout << "pred vertex " << cV << " after root was -1" << std::endl;
+
+            return false;
+
+        } else if (visited[cV]) {
+            if (debug)
+                std::cout << "tree with cycles" << std::endl;
+
+            return false;
+
+        } else if (tree[cV].size() > 2) {
+            if (debug) {
+                std::cout << cV << " -> ";
+                for (int child: tree[cV]) {
+                    std::cout << child << ", ";
+                }
+
+                std::cout << std::endl;
+                std::cout << "vertex " << cV << " with more than 2 children" << std::endl;
+            }
+
             return false;
 
         }
@@ -42,9 +64,13 @@ bool isValidBinaryTree (const std::vector<int>& pred) {
     }
 
     for (bool vis: visited) {
-        if (!vis)
+        if (!vis) {
+            if (debug)
+                std::cout << "not all vertices were visited" << std::endl;
+
             return false;
 
+        }
     }
 
     return true;

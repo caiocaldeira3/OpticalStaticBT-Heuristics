@@ -9,6 +9,7 @@
 #include "greedy.hh"
 #include "bbst.hh"
 #include "optbst.hh"
+#include "genetic.hh"
 
 int main (int argc, char* argv[]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -38,7 +39,7 @@ int main (int argc, char* argv[]) {
     }
 
     std::ifstream iFile(inputName);
-    int nVertices, nMessages, gTotalCost = 0, hTotalCost = 0, optBstTotalCost = 0;
+    int nVertices, nMessages, gTotalCost = 0, hTotalCost = 0, optBstTotalCost = 0, genTotalCost = 0;
     iFile >> nVertices >> nMessages;
 
     std::vector<query> queries(nMessages);
@@ -57,6 +58,7 @@ int main (int argc, char* argv[]) {
     fs::create_directories("output/" + locality + "/" + shuffleArg + "/greedy/");
     fs::create_directories("output/" + locality + "/" + shuffleArg + "/bbst/");
     fs::create_directories("output/" + locality + "/" + shuffleArg + "/optbst/");
+    fs::create_directories("output/" + locality + "/" + shuffleArg + "/genetic/");
 
     std::ofstream gPredsFile(
         "output/" + locality + "/" + shuffleArg + "/greedy/" + std::to_string(testNumber) + ".out"
@@ -120,5 +122,19 @@ int main (int argc, char* argv[]) {
     optBstCostFile << optBstTotalCost << std::endl;
 
     assert (optBstTotalCost == treeCost(optBstTree, queries));
+
+    std::ofstream geneticPredFile(
+        "output/" + locality + "/" + shuffleArg + "/genetic/" + std::to_string(testNumber) + ".out"
+    );
+    std::vector<int> geneticTree = geneticAlgorithm(150, 500, nVertices, genTotalCost, queries);
+
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        geneticPredFile << geneticTree[vIdx] << std::endl;
+    }
+
+    std::ofstream geneticCostFile(
+        "output/" + locality + "/" + shuffleArg + "/genetic_costs.out", std::ios_base::app
+    );
+    geneticCostFile << genTotalCost << std::endl;
 
 }
