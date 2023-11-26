@@ -126,7 +126,7 @@ int main (int argc, char* argv[]) {
     std::ofstream geneticPredFile(
         "output/" + locality + "/" + shuffleArg + "/genetic/" + std::to_string(testNumber) + ".out"
     );
-    std::vector<int> geneticTree = geneticAlgorithm(150, 500, nVertices, genTotalCost, queries);
+    std::vector<int> geneticTree = geneticAlgorithm(300, 100, nVertices, genTotalCost, queries);
 
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         geneticPredFile << geneticTree[vIdx] << std::endl;

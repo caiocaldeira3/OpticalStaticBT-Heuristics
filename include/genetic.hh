@@ -337,6 +337,11 @@ std::vector<int> geneticAlgorithm (
             Individual offspring = cross(ind, oth, mutProb, crossProb);
             offspring.computeCost(queries);
 
+            if (offspring.getCost() < pop[0].getCost()) {
+                lastChanged = genIdx;
+
+            }
+
             newGen.push_back(offspring);
         }
 
