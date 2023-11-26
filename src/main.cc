@@ -63,7 +63,10 @@ int main (int argc, char* argv[]) {
     std::ofstream gPredsFile(
         "output/" + locality + "/" + shuffleArg + "/greedy/" + std::to_string(testNumber) + ".out"
     );
+
+    const clock_t gBeginTime = std::clock();
     std::vector<int> gTree = greedyConstructor(queries, nVertices, gTotalCost);
+    double gSec = double(std::clock() - gBeginTime) / CLOCKS_PER_SEC;
 
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         gPredsFile << gTree[vIdx] << std::endl;
@@ -74,12 +77,20 @@ int main (int argc, char* argv[]) {
     );
     gCostsFile << gTotalCost << std::endl;
 
+    std::ofstream gTimeSpent(
+        "output/" + locality + "/" + shuffleArg + "/greedy_time_spent.out", std::ios_base::app
+    );
+    gTimeSpent << gSec << std::endl;
+
     assert (gTotalCost == treeCost(gTree, queries));
 
     std::ofstream hPredFile(
         "output/" + locality + "/" + shuffleArg + "/huffman/" + std::to_string(testNumber) + ".out"
     );
+
+    const clock_t hBeginTime = std::clock();
     std::vector<int> hTree = huffmanHeuristic(queries, nVertices, hTotalCost);
+    double hSec = double(std::clock() - hBeginTime) / CLOCKS_PER_SEC;
 
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         hPredFile << hTree[vIdx] << std::endl;
@@ -91,6 +102,11 @@ int main (int argc, char* argv[]) {
     hCostsFile << hTotalCost << std::endl;
 
     assert (hTotalCost == treeCost(hTree, queries));
+
+    std::ofstream hTimeSpent(
+        "output/" + locality + "/" + shuffleArg + "/huffman_time_spent.out", std::ios_base::app
+    );
+    hTimeSpent << hSec << std::endl;
 
     std::vector<int> bTree(nVertices);
     buildBalancedBST(0, nVertices, bTree);
@@ -110,7 +126,10 @@ int main (int argc, char* argv[]) {
     std::ofstream optBstPredFile(
         "output/" + locality + "/" + shuffleArg + "/optbst/" + std::to_string(testNumber) + ".out"
     );
+
+    const clock_t optBstBeginTime = std::clock();
     std::vector<int> optBstTree = optimalBST(queries, nVertices, optBstTotalCost);
+    double optBstSec = double(std::clock() - optBstBeginTime) / CLOCKS_PER_SEC;
 
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         optBstPredFile << optBstTree[vIdx] << std::endl;
@@ -123,14 +142,22 @@ int main (int argc, char* argv[]) {
 
     assert (optBstTotalCost == treeCost(optBstTree, queries));
 
+    std::ofstream optBstTimeSpent(
+        "output/" + locality + "/" + shuffleArg + "/optbst_time_spent.out", std::ios_base::app
+    );
+    optBstTimeSpent << optBstSec << std::endl;
+
     std::vector<std::vector<int>> othResponses = { hTree, gTree, bTree, optBstTree };
 
     std::ofstream geneticPredFile(
         "output/" + locality + "/" + shuffleArg + "/genetic/" + std::to_string(testNumber) + ".out"
     );
+
+    const clock_t genBeginTime = std::clock();
     std::vector<int> geneticTree = geneticAlgorithm(
         300, 100, nVertices, genTotalCost, queries, othResponses=othResponses
     );
+    double genSec = double(std::clock() - genBeginTime) / CLOCKS_PER_SEC;
 
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         geneticPredFile << geneticTree[vIdx] << std::endl;
@@ -141,4 +168,8 @@ int main (int argc, char* argv[]) {
     );
     geneticCostFile << genTotalCost << std::endl;
 
+    std::ofstream genTimeSpent(
+        "output/" + locality + "/" + shuffleArg + "/genetic_time_spent.out", std::ios_base::app
+    );
+    genTimeSpent << genSec << std::endl;
 }
