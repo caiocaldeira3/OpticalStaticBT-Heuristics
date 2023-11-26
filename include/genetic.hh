@@ -293,8 +293,8 @@ class Individual {
 
 std::vector<int> geneticAlgorithm (
     int popSize, int stoppingGen, int nVertices, int& totalCost,
-    std::vector<query> queries, double elitePct = 0.1, double crossFitPct = 0.5,
-    double mutProb = 0.02, double crossProb = 0.4
+    std::vector<query> queries, double elitePct = 0.1, double crossFitPct = 0.4,
+    double mutProb = 0.02, double crossProb = 0.2
 ) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
