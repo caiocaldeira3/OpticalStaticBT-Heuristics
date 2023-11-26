@@ -175,6 +175,7 @@ class Individual {
     std::vector<int> genome;
     int nVertices;
     int cost;
+    double weight;
 
     public:
         Individual (int nVertices, std::vector<int> genome, int cost = INF)
@@ -192,8 +193,18 @@ class Individual {
 
         }
 
+        void computeWeight (int bestCost) {
+            this->weight = (bestCost / (double) this->cost);
+
+        }
+
         int getCost () {
             return this->cost;
+        }
+
+        double getWeight () {
+            return this->weight;
+
         }
 
         friend bool operator< (Individual ind, Individual oth) {
@@ -293,14 +304,20 @@ class Individual {
 
 std::vector<int> geneticAlgorithm (
     int popSize, int stoppingGen, int nVertices, int& totalCost,
-    std::vector<query> queries, double elitePct = 0.1, double crossFitPct = 0.4,
-    double mutProb = 0.02, double crossProb = 0.2
+    std::vector<query> queries, std::vector<std::vector<int>> othResponses = std::vector<std::vector<int>>(),
+    double elitePct = 0.1, double crossFitPct = 0.4, double mutProb = 0.02, double crossProb = 0.2
 ) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
     std::vector<Individual> pop;
 
-    for (int popIdx = 0; popIdx < popSize; popIdx++) {
+    for (std::vector<int>& resp: othResponses) {
+        Individual ind(nVertices, resp, treeCost(resp, queries));
+        pop.push_back(ind);
+
+    }
+
+    for (int popIdx = 0; popIdx < popSize - othResponses.size(); popIdx++) {
         std::vector<int> pred(nVertices);
         std::ifstream popFile("pop/" + std::to_string(nVertices) + "/" + std::to_string(popIdx) + ".txt");
 
@@ -313,9 +330,10 @@ std::vector<int> geneticAlgorithm (
         pop.push_back(ind);
     }
 
+    std::vector<double> weights(nVertices);
     int crossFit = popSize * crossFitPct;
-    std::uniform_int_distribution<> pDis(0, crossFit);
-
+    int eliteSize = popSize * elitePct;
+    int crossSize = popSize - eliteSize;
     int lastChanged = 0;
 
     for (int genIdx = 0; lastChanged + stoppingGen >= genIdx; genIdx++) {
@@ -323,17 +341,27 @@ std::vector<int> geneticAlgorithm (
         std::cout << "gen idx: " << genIdx << " - mnCost so far: " << pop[0].getCost() << std::endl;
 
         std::vector<Individual> newGen;
-        int eliteSize = popSize * elitePct;
-        int crossSize = popSize - eliteSize;
 
         for (int idx = 0; idx < eliteSize; idx++) {
             newGen.push_back(pop[idx]);
 
         }
 
+        for (int genIdx = 0; genIdx < crossFit; genIdx++) {
+            pop[genIdx].computeWeight(pop[0].getCost());
+            weights[genIdx] = pop[genIdx].getWeight();
+        }
+
+        std::discrete_distribution<int> pDis(std::begin(weights), std::end(weights));
+
         for (int idx = 0; idx < crossSize; idx++) {
-            Individual ind = pop[pDis(gen)];
-            Individual oth = pop[pDis(gen)];
+            int indIdx = pDis(gen);
+            int othIdx = pDis(gen);
+            while (othIdx == indIdx)
+                othIdx = pDis(gen);
+
+            Individual ind = pop[indIdx];
+            Individual oth = pop[othIdx];
             Individual offspring = cross(ind, oth, mutProb, crossProb);
             offspring.computeCost(queries);
 

@@ -123,10 +123,14 @@ int main (int argc, char* argv[]) {
 
     assert (optBstTotalCost == treeCost(optBstTree, queries));
 
+    std::vector<std::vector<int>> othResponses = { hTree, gTree, bTree, optBstTree };
+
     std::ofstream geneticPredFile(
         "output/" + locality + "/" + shuffleArg + "/genetic/" + std::to_string(testNumber) + ".out"
     );
-    std::vector<int> geneticTree = geneticAlgorithm(300, 100, nVertices, genTotalCost, queries);
+    std::vector<int> geneticTree = geneticAlgorithm(
+        300, 100, nVertices, genTotalCost, queries, othResponses=othResponses
+    );
 
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         geneticPredFile << geneticTree[vIdx] << std::endl;
