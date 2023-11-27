@@ -153,9 +153,10 @@ int main (int argc, char* argv[]) {
         "output/" + locality + "/" + shuffleArg + "/genetic/" + std::to_string(testNumber) + ".out"
     );
 
+    int numGen;
     const clock_t genBeginTime = std::clock();
     std::vector<int> geneticTree = geneticAlgorithm(
-        300, 100, nVertices, genTotalCost, queries, othResponses=othResponses
+        1000, 100, nVertices, genTotalCost, numGen, queries, othResponses=othResponses
     );
     double genSec = double(std::clock() - genBeginTime) / CLOCKS_PER_SEC;
 
@@ -172,4 +173,9 @@ int main (int argc, char* argv[]) {
         "output/" + locality + "/" + shuffleArg + "/genetic_time_spent.out", std::ios_base::app
     );
     genTimeSpent << genSec << std::endl;
+
+    std::ofstream genNumFile(
+        "output/" + locality + "/" + shuffleArg + "/genetic_generation_cost.out", std::ios_base::app
+    );
+    genNumFile << numGen << std::endl;
 }

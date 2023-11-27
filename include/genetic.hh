@@ -303,7 +303,7 @@ class Individual {
 };
 
 std::vector<int> geneticAlgorithm (
-    int popSize, int stoppingGen, int nVertices, int& totalCost,
+    int popSize, int stoppingGen, int nVertices, int& totalCost, int& numGen,
     std::vector<query> queries, std::vector<std::vector<int>> othResponses = std::vector<std::vector<int>>(),
     double elitePct = 0.1, double crossFitPct = 0.4, double mutProb = 0.02, double crossProb = 0.2
 ) {
@@ -330,11 +330,11 @@ std::vector<int> geneticAlgorithm (
         pop.push_back(ind);
     }
 
-    std::vector<double> weights(nVertices);
     int crossFit = popSize * crossFitPct;
     int eliteSize = popSize * elitePct;
     int crossSize = popSize - eliteSize;
     int lastChanged = 0;
+    std::vector<double> weights(crossFit);
 
     for (int genIdx = 0; lastChanged + stoppingGen >= genIdx; genIdx++) {
         std::sort(pop.begin(), pop.end());
@@ -375,6 +375,8 @@ std::vector<int> geneticAlgorithm (
 
         pop = newGen;
     }
+
+    numGen = lastChanged;
 
     int mnIdx = 0;
     for (int idx = 1; idx < popSize; idx++) {
