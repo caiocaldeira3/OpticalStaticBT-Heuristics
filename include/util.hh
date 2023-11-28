@@ -112,6 +112,30 @@ void computeDistances (
     }
 }
 
+int getPreLCA (int idx, int odx, const std::vector<int>& pred) {
+    std::queue<int> q;
+    q.push(idx);
+    q.push(odx);
+
+    while (!q.empty()) {
+        int nxt = q.front(); q.pop();
+        if (pred[nxt] == idx) {
+            return nxt;
+
+        } else if (pred[nxt] == odx) {
+            return nxt;
+
+        } else if (pred[nxt] == -1) {
+            continue;
+
+        }
+
+        q.push(pred[nxt]);
+    }
+
+    return -1;
+}
+
 int treeCost (const std::vector<int>& preds, const std::vector<query>& queries) {
     int nVertices = preds.size();
     std::vector<std::vector<int>> distances(nVertices, std::vector<int>(nVertices, INF));

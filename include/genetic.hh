@@ -13,163 +13,186 @@
 #include <iostream>
 
 
-void updateVertexParent (
+void cleanSwap (
+    int genIdx, int oldPIdx, int newPIdx, std::vector<int>& gPred, std::set<int>& remV,
+    std::vector<std::set<int>>& children, std::map<int,int>& leafes
+) {
+    auto leafNP = leafes.find(newPIdx);
+
+    remV.erase(genIdx);
+    gPred[genIdx] = newPIdx;
+
+    children[oldPIdx].erase(genIdx);
+    children[newPIdx].insert(genIdx);
+
+    leafes[oldPIdx] = 2 - children[oldPIdx].size();
+    if (leafNP->second == 2) {
+        leafNP->second--;
+
+    } else {
+        leafes.erase(leafNP);
+
+    }
+}
+
+void bothFullSwap (
+    int genIdx, int oldPIdx, int newPIdx, int npChild, int gChild,
+    std::vector<int>& gPred, std::set<int>& remV, std::vector<std::set<int>>& children
+) {
+    remV.erase(genIdx);
+    remV.erase(npChild);
+    remV.erase(gChild);
+
+    assert (gPred[genIdx] == oldPIdx);
+    assert (gPred[gChild] == genIdx);
+    assert (gPred[npChild] == newPIdx);
+
+    gPred[genIdx] = newPIdx;
+    gPred[npChild] = genIdx;
+    gPred[gChild] = oldPIdx;
+
+    children[newPIdx].erase(npChild);
+    children[newPIdx].insert(genIdx);
+    children[genIdx].erase(gChild);
+    children[genIdx].insert(npChild);
+    children[oldPIdx].erase(genIdx);
+    children[oldPIdx].insert(gChild);
+}
+
+void genAvailableSwap (
+    int genIdx, int oldPIdx, int newPIdx, int npChild, std::vector<int>& gPred, std::set<int>& remV,
+    std::vector<std::set<int>>& children, std::map<int,int>& leafes
+) {
+    remV.erase(genIdx);
+    remV.erase(npChild);
+
+    gPred[genIdx] = newPIdx;
+    gPred[npChild] = genIdx;
+
+    children[oldPIdx].erase(genIdx);
+    children[newPIdx].erase(npChild);
+    children[newPIdx].insert(genIdx);
+    children[genIdx].insert(npChild);
+
+    leafes[oldPIdx] = 2 - children[oldPIdx].size();
+    if (children[genIdx].size() < 2) {
+        leafes[genIdx] = 2 - children[genIdx].size();
+
+    } else {
+        leafes.erase(genIdx);
+
+    }
+}
+
+void swapDiffSubtree (
     int genIdx, int oldPIdx, int newPIdx, std::vector<int>& gPred, std::set<int>& remV,
     std::vector<std::set<int>>& children, std::map<int,int>& leafes, std::mt19937 gen
 ) {
-    gPred[genIdx] = newPIdx;
-    if (isValidBinaryTree(gPred)) {
-        children[oldPIdx].erase(genIdx);
-        children[newPIdx].insert(genIdx);
+    auto leafNP = leafes.find(newPIdx);
+    if (leafNP != leafes.end()) {
+        cleanSwap(genIdx, oldPIdx, newPIdx, gPred, remV, children, leafes);
 
-        leafes[oldPIdx] = 2 - children[oldPIdx].size();
+    } else {
+        std::uniform_int_distribution<> fullDis(0, 1);
+        auto npCIt = children[newPIdx].begin();
+        std::advance(npCIt, fullDis(gen));
+        int npChild = *npCIt;
 
-        if (children[newPIdx].size() < 2) {
-            leafes[newPIdx] = 2 - children[newPIdx].size();
+        if (leafes.find(genIdx) != leafes.end()) {
+            genAvailableSwap(
+                genIdx, oldPIdx, newPIdx, npChild, gPred, remV, children, leafes
+            );
 
         } else {
-            leafes.erase(newPIdx);
+            auto gCIt = children[genIdx].begin();
+            std::advance(gCIt, fullDis(gen));
+            int gChild = *gCIt;
+
+            bothFullSwap(
+                genIdx, oldPIdx, newPIdx, npChild, gChild, gPred, remV, children
+            );
+        }
+    }
+}
+
+void swapUpSubtree (
+    int genIdx, int oldPIdx, int newPIdx, int sbtreeChild,
+    std::vector<int>& gPred, std::set<int>& remV, std::vector<std::set<int>>& children,
+    std::map<int,int>& leafes, std::mt19937 gen
+) {
+    auto leafNP = leafes.find(newPIdx);
+    if (leafNP != leafes.end()) {
+        remV.erase(genIdx);
+        remV.erase(sbtreeChild);
+
+        assert (gPred[genIdx] == oldPIdx);
+        assert (gPred[sbtreeChild] == genIdx);
+
+        gPred[genIdx] = newPIdx;
+        gPred[sbtreeChild] = oldPIdx;
+
+        children[genIdx].erase(sbtreeChild);
+        children[oldPIdx].erase(genIdx);
+        children[oldPIdx].insert(sbtreeChild);
+        children[newPIdx].insert(genIdx);
+
+        leafes[genIdx] = 2 - children[genIdx].size();
+        if (leafNP->second == 2) {
+            leafNP->second--;
+
+        } else {
+            leafes.erase(leafNP);
 
         }
 
     } else {
-        std::set<int> posChildren;
-        for (int cIdx: children[genIdx])
-            posChildren.insert(cIdx);
+        std::uniform_int_distribution<> npDis(0, 1);
+        auto npCIt = children[newPIdx].begin();
+        std::advance(npCIt, npDis(gen));
+        int npChild = *npCIt;
 
-        bool possible = false;
-        while (!posChildren.empty()) {
-            std::uniform_int_distribution<> cDis(0, posChildren.size() - 1);
-            auto cIt = posChildren.begin();
-            std::advance(cIt, cDis(gen));
-            int cIdx = *cIt;
+        bothFullSwap(
+            genIdx, oldPIdx, newPIdx, npChild, sbtreeChild, gPred, remV, children
+        );
+    }
+}
 
-            gPred[cIdx] = oldPIdx;
-            gPred[genIdx] = newPIdx;
+void swapDownSubtree (
+    int genIdx, int oldPIdx, int newPIdx, int sbtreeChild,
+    std::vector<int>& gPred, std::set<int>& remV, std::vector<std::set<int>>& children,
+    std::map<int,int>& leafes, std::mt19937 gen
+) {
+    auto leafNP = leafes.find(newPIdx);
+    if (leafNP != leafes.end()) {
+        cleanSwap(genIdx, oldPIdx, newPIdx, gPred, remV, children, leafes);
 
-            if (isValidBinaryTree(gPred)) {
-                remV.erase(genIdx);
-                remV.erase(cIdx);
-
-                possible = true;
-                children[newPIdx].insert(genIdx);
-                children[oldPIdx].erase(genIdx);
-                children[oldPIdx].insert(cIdx);
-                children[genIdx].erase(cIdx);
-
-                leafes[genIdx] = 2 - children[genIdx].size();
-
-                if (children[newPIdx].size() < 2) {
-                    leafes[newPIdx] = 2 - children[newPIdx].size();
-
-                } else {
-                    leafes.erase(newPIdx);
-
-                }
-
+    } else {
+        int npChild;
+        for (int child: children[newPIdx]) {
+            if (child != sbtreeChild) {
+                npChild = sbtreeChild;
                 break;
 
             }
-
-            gPred[genIdx] = oldPIdx;
-            gPred[cIdx] = genIdx;
-            posChildren.erase(cIt);
         }
 
-        assert (possible);
-    }
-}
+        if (leafes.find(genIdx) != leafes.end()) {
+            genAvailableSwap(
+                genIdx, oldPIdx, newPIdx, npChild, gPred, remV, children, leafes
+            );
 
+        } else {
+            std::uniform_int_distribution<> gDis(0, 1);
+            auto gCIt = children[genIdx].begin();
+            std::advance(gCIt, gDis(gen));
+            int gChild = *gCIt;
 
-bool swapDownSubtrees (
-    int genIdx, int oldPIdx, int newPIdx, std::vector<int>& gPred, std::set<int>& remV,
-    std::vector<std::set<int>>& children, std::map<int,int>& leafes, std::mt19937 gen
-) {
-    std::set<int> posChildren;
-    for (int cIdx: children[newPIdx])
-        posChildren.insert(cIdx);
-
-    while (!posChildren.empty()) {
-        std::uniform_int_distribution<> cDis(0, posChildren.size() - 1);
-        auto cIt = posChildren.begin();
-        std::advance(cIt, cDis(gen));
-        int cIdx = *cIt;
-
-        gPred[cIdx] = oldPIdx;
-        gPred[genIdx] = newPIdx;
-
-        if (isValidBinaryTree(gPred)) {
-            remV.erase(genIdx);
-            remV.erase(cIdx);
-
-            children[newPIdx].insert(genIdx);
-            children[newPIdx].erase(cIdx);
-            children[oldPIdx].erase(genIdx);
-            children[oldPIdx].insert(cIdx);
-
-            return true;
+            bothFullSwap(
+                genIdx, oldPIdx, newPIdx, sbtreeChild, gChild, gPred, remV, children
+            );
         }
-
-        gPred[genIdx] = oldPIdx;
-        gPred[cIdx] = newPIdx;
-        posChildren.erase(cIt);
     }
-
-    return false;
 }
-
-void swapUpSubtrees (
-    int genIdx, int oldPIdx, int newPIdx, std::vector<int>& gPred, std::set<int>& remV,
-    std::vector<std::set<int>>& children, std::map<int,int>& leafes, std::mt19937 gen
-) {
-    std::uniform_int_distribution<> newDis(0, children[newPIdx].size() - 1);
-    auto newChildIt = children[newPIdx].begin();
-    std::advance(newChildIt, newDis(gen));
-
-    int preteredChild = *newChildIt;
-
-    std::set<int> posChildren;
-    for (int cIdx: children[genIdx])
-        posChildren.insert(cIdx);
-
-    bool possible = false;
-
-    while (!posChildren.empty()) {
-        std::uniform_int_distribution<> cDis(0, posChildren.size() - 1);
-        auto cIt = posChildren.begin();
-        std::advance(cIt, cDis(gen));
-        int cIdx = *cIt;
-
-        gPred[cIdx] = oldPIdx;
-        gPred[genIdx] = newPIdx;
-        gPred[preteredChild] = genIdx;
-
-        if (isValidBinaryTree(gPred)) {
-            remV.erase(genIdx);
-            remV.erase(cIdx);
-            remV.erase(preteredChild);
-
-            possible = true;
-
-            children[genIdx].insert(preteredChild);
-            children[genIdx].erase(cIdx);
-            children[oldPIdx].erase(genIdx);
-            children[oldPIdx].insert(cIdx);
-            children[newPIdx].erase(preteredChild);
-            children[newPIdx].insert(genIdx);
-
-            break;
-        }
-
-        gPred[preteredChild] = newPIdx;
-        gPred[genIdx] = oldPIdx;
-        gPred[cIdx] = genIdx;
-        posChildren.erase(cIt);
-    }
-
-    assert (possible);
-}
-
 
 class Individual {
     std::vector<int> genome;
@@ -244,55 +267,46 @@ class Individual {
                 std::advance(remIt, rDis(gen));
                 int genIdx = *remIt;
                 int pIdx = cPred[genIdx];
-                int othPIdx = oth.genome[genIdx];
+                int newPIdx;
 
                 if (p < mutProb) {
                     std::uniform_int_distribution<> lDis(0, leafes.size() - 1);
                     auto leafIt = leafes.begin();
                     std::advance(leafIt, lDis(gen));
 
-                    if (leafIt->first == genIdx || leafIt->first == pIdx) {
-                        continue;
-
-                    } else {
-                        updateVertexParent(
-                            genIdx, pIdx, leafIt->first, cPred, remV, children, leafes, gen
-                        );
-                    }
+                    newPIdx = leafIt->first;
 
                 } else if (p > 1 - crossProb) {
-                    auto pIt = leafes.find(othPIdx);
-                    auto gIt = leafes.find(genIdx);
-
-                    if (othPIdx == pIdx || othPIdx == -1) {
-                        remV.erase(remIt);
-
-                    } else if (pIt != leafes.end()) {
-                        updateVertexParent(
-                            genIdx, pIdx, othPIdx, cPred, remV, children, leafes, gen
-                        );
-
-                    } else if (children[genIdx].empty()) {
-                        assert (swapDownSubtrees(
-                            genIdx, pIdx, othPIdx, cPred, remV, children, leafes, gen
-                        ));
-
-                    } else {
-                        if (!swapDownSubtrees(
-                            genIdx, pIdx, othPIdx, cPred, remV, children, leafes, gen
-                        )) {
-                            swapUpSubtrees(
-                                genIdx, pIdx, othPIdx, cPred, remV, children, leafes, gen
-                            );
-
-                        }
-                    }
+                    newPIdx = oth.genome[genIdx];
 
                 } else {
-                    remV.erase(genIdx);
+                    newPIdx = pIdx;
 
                 }
 
+                if (newPIdx == pIdx || newPIdx == -1 || newPIdx == genIdx) {
+                    remV.erase(remIt);
+                    continue;
+
+                }
+
+                int preLCA = getPreLCA(genIdx, newPIdx, cPred);
+                if (preLCA == -1) {
+                    swapDiffSubtree(
+                        genIdx, pIdx, newPIdx, cPred, remV, children, leafes, gen
+                    );
+
+                } else if (cPred[preLCA] == genIdx) {
+                    swapUpSubtree(
+                        genIdx, pIdx, newPIdx, preLCA, cPred, remV, children, leafes, gen
+                    );
+
+                } else {
+                    swapDownSubtree(
+                        genIdx, pIdx, newPIdx, preLCA, cPred, remV, children, leafes, gen
+                    );
+
+                }
             }
 
             assert (isValidBinaryTree(cPred));
@@ -310,10 +324,13 @@ std::vector<int> geneticAlgorithm (
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::mt19937 gen(seed);
     std::vector<Individual> pop;
+    int sumSolution = 0;
+    double mean;
 
     for (std::vector<int>& resp: othResponses) {
         Individual ind(nVertices, resp, treeCost(resp, queries));
         pop.push_back(ind);
+        sumSolution += ind.getCost();
 
     }
 
@@ -328,6 +345,8 @@ std::vector<int> geneticAlgorithm (
 
         Individual ind(nVertices, pred, treeCost(pred, queries));
         pop.push_back(ind);
+        sumSolution += ind.getCost();
+
     }
 
     int crossFit = popSize * crossFitPct;
@@ -338,12 +357,18 @@ std::vector<int> geneticAlgorithm (
 
     for (int genIdx = 0; lastChanged + stoppingGen >= genIdx; genIdx++) {
         std::sort(pop.begin(), pop.end());
-        std::cout << "gen idx: " << genIdx << " - mnCost so far: " << pop[0].getCost() << std::endl;
+
+        mean = sumSolution / double(popSize);
+        sumSolution = 0;
+        std::cout << "gen idx: " << genIdx << " - mnCost so far: ";
+        std::cout << pop[0].getCost() << " mean: " << mean << std::endl;
 
         std::vector<Individual> newGen;
+        int sum = 0;
 
         for (int idx = 0; idx < eliteSize; idx++) {
             newGen.push_back(pop[idx]);
+            sumSolution += newGen[idx].getCost();
 
         }
 
@@ -371,6 +396,7 @@ std::vector<int> geneticAlgorithm (
             }
 
             newGen.push_back(offspring);
+            sumSolution += offspring.getCost();
         }
 
         pop = newGen;
