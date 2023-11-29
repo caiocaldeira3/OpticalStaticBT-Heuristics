@@ -20,7 +20,7 @@ int main (int argc, char* argv[]) {
     std::mt19937 gen(seed);
     std::uniform_int_distribution<> vDis(0, nVertices - 1);
     namespace fs = std::filesystem;
-    fs::create_directories("pop/" + std::to_string(nVertices) + "/");
+    fs::create_directories("genpop/" + std::to_string(nVertices) + "/");
 
     for (int popIdx = 0; popIdx < 1000; popIdx++) {
         std::vector<int> preds(nVertices, -1);
@@ -60,7 +60,7 @@ int main (int argc, char* argv[]) {
         assert (isValidBinaryTree(preds));
 
         std::ofstream outFile(
-            "pop/" + std::to_string(nVertices) + "/" + std::to_string(popIdx) + ".txt"
+            "genpop/" + std::to_string(nVertices) + "/" + std::to_string(popIdx) + ".txt"
         );
 
         for (int node = 0; node < nVertices; node++) {

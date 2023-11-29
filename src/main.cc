@@ -53,15 +53,20 @@ int main (int argc, char* argv[]) {
 
     }
 
+    std::string baseFolderName = (
+        "output/" + std::to_string(nVertices) + "/" + std::to_string(nMessages) + "/" +
+        locality + "/" + shuffleArg + "/"
+    );
+
     namespace fs = std::filesystem;
-    fs::create_directories("output/" + locality + "/" + shuffleArg + "/huffman/");
-    fs::create_directories("output/" + locality + "/" + shuffleArg + "/greedy/");
-    fs::create_directories("output/" + locality + "/" + shuffleArg + "/bbst/");
-    fs::create_directories("output/" + locality + "/" + shuffleArg + "/optbst/");
-    fs::create_directories("output/" + locality + "/" + shuffleArg + "/genetic/");
+    fs::create_directories(baseFolderName + "huffman/");
+    fs::create_directories(baseFolderName + "greedy/");
+    fs::create_directories(baseFolderName + "bbst/");
+    fs::create_directories(baseFolderName + "optbst/");
+    fs::create_directories(baseFolderName + "genetic/");
 
     std::ofstream gPredsFile(
-        "output/" + locality + "/" + shuffleArg + "/greedy/" + std::to_string(testNumber) + ".out"
+        baseFolderName + "greedy/" + std::to_string(testNumber) + ".out"
     );
 
     const clock_t gBeginTime = std::clock();
@@ -73,19 +78,19 @@ int main (int argc, char* argv[]) {
     }
 
     std::ofstream gCostsFile(
-        "output/" + locality + "/" + shuffleArg + "/greedy_costs.out", std::ios_base::app
+        baseFolderName + "greedy_costs.out", std::ios_base::app
     );
     gCostsFile << gTotalCost << std::endl;
 
     std::ofstream gTimeSpent(
-        "output/" + locality + "/" + shuffleArg + "/greedy_time_spent.out", std::ios_base::app
+        baseFolderName + "greedy_time_spent.out", std::ios_base::app
     );
     gTimeSpent << gSec << std::endl;
 
     assert (gTotalCost == treeCost(gTree, queries));
 
     std::ofstream hPredFile(
-        "output/" + locality + "/" + shuffleArg + "/huffman/" + std::to_string(testNumber) + ".out"
+        baseFolderName + "huffman/" + std::to_string(testNumber) + ".out"
     );
 
     const clock_t hBeginTime = std::clock();
@@ -97,14 +102,14 @@ int main (int argc, char* argv[]) {
     }
 
     std::ofstream hCostsFile(
-        "output/" + locality + "/" + shuffleArg + "/huffman_costs.out", std::ios_base::app
+        baseFolderName + "huffman_costs.out", std::ios_base::app
     );
     hCostsFile << hTotalCost << std::endl;
 
     assert (hTotalCost == treeCost(hTree, queries));
 
     std::ofstream hTimeSpent(
-        "output/" + locality + "/" + shuffleArg + "/huffman_time_spent.out", std::ios_base::app
+        baseFolderName + "huffman_time_spent.out", std::ios_base::app
     );
     hTimeSpent << hSec << std::endl;
 
@@ -112,19 +117,19 @@ int main (int argc, char* argv[]) {
     buildBalancedBST(0, nVertices, bTree);
 
     std::ofstream bPredsFile(
-        "output/" + locality + "/" + shuffleArg + "/bbst/" + std::to_string(nVertices) + "_bbst.out"
+        baseFolderName + "bbst/" + std::to_string(nVertices) + "_bbst.out"
     );
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         bPredsFile << bTree[vIdx] << std::endl;
     }
 
     std::ofstream bCostsFile(
-        "output/" + locality + "/" + shuffleArg + "/bbst_costs.out", std::ios_base::app
+        baseFolderName + "bbst_costs.out", std::ios_base::app
     );
     bCostsFile << treeCost(bTree, queries) << std::endl;
 
     std::ofstream optBstPredFile(
-        "output/" + locality + "/" + shuffleArg + "/optbst/" + std::to_string(testNumber) + ".out"
+        baseFolderName + "optbst/" + std::to_string(testNumber) + ".out"
     );
 
     const clock_t optBstBeginTime = std::clock();
@@ -136,46 +141,48 @@ int main (int argc, char* argv[]) {
     }
 
     std::ofstream optBstCostFile(
-        "output/" + locality + "/" + shuffleArg + "/optbst_costs.out", std::ios_base::app
+        baseFolderName + "optbst_costs.out", std::ios_base::app
     );
     optBstCostFile << optBstTotalCost << std::endl;
 
     assert (optBstTotalCost == treeCost(optBstTree, queries));
 
     std::ofstream optBstTimeSpent(
-        "output/" + locality + "/" + shuffleArg + "/optbst_time_spent.out", std::ios_base::app
+        baseFolderName + "optbst_time_spent.out", std::ios_base::app
     );
     optBstTimeSpent << optBstSec << std::endl;
 
     std::vector<std::vector<int>> othResponses = { hTree, gTree, bTree, optBstTree };
 
-    std::ofstream geneticPredFile(
-        "output/" + locality + "/" + shuffleArg + "/genetic/" + std::to_string(testNumber) + ".out"
-    );
+    if (!shuffle) {
+        std::ofstream geneticPredFile(
+            baseFolderName + "genetic/" + std::to_string(testNumber) + ".out"
+        );
 
-    int numGen;
-    const clock_t genBeginTime = std::clock();
-    std::vector<int> geneticTree = geneticAlgorithm(
-        1000, 100, nVertices, genTotalCost, numGen, queries, othResponses=othResponses
-    );
-    double genSec = double(std::clock() - genBeginTime) / CLOCKS_PER_SEC;
+        int numGen;
+        const clock_t genBeginTime = std::clock();
+        std::vector<int> geneticTree = geneticAlgorithm(
+            1000, 100, nVertices, genTotalCost, numGen, queries, othResponses=othResponses
+        );
+        double genSec = double(std::clock() - genBeginTime) / CLOCKS_PER_SEC;
 
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        geneticPredFile << geneticTree[vIdx] << std::endl;
+        for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+            geneticPredFile << geneticTree[vIdx] << std::endl;
+        }
+
+        std::ofstream geneticCostFile(
+            baseFolderName + "genetic_costs.out", std::ios_base::app
+        );
+        geneticCostFile << genTotalCost << std::endl;
+
+        std::ofstream genTimeSpent(
+            baseFolderName + "genetic_time_spent.out", std::ios_base::app
+        );
+        genTimeSpent << genSec << std::endl;
+
+        std::ofstream genNumFile(
+            baseFolderName + "genetic_generation_cost.out", std::ios_base::app
+        );
+        genNumFile << numGen << std::endl;
     }
-
-    std::ofstream geneticCostFile(
-        "output/" + locality + "/" + shuffleArg + "/genetic_costs.out", std::ios_base::app
-    );
-    geneticCostFile << genTotalCost << std::endl;
-
-    std::ofstream genTimeSpent(
-        "output/" + locality + "/" + shuffleArg + "/genetic_time_spent.out", std::ios_base::app
-    );
-    genTimeSpent << genSec << std::endl;
-
-    std::ofstream genNumFile(
-        "output/" + locality + "/" + shuffleArg + "/genetic_generation_cost.out", std::ios_base::app
-    );
-    genNumFile << numGen << std::endl;
 }

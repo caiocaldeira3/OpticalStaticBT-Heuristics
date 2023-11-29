@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <assert.h>
-#include <iostream>
 
 
 void cleanSwap (
@@ -336,7 +335,7 @@ std::vector<int> geneticAlgorithm (
 
     for (int popIdx = 0; popIdx < popSize - othResponses.size(); popIdx++) {
         std::vector<int> pred(nVertices);
-        std::ifstream popFile("pop/" + std::to_string(nVertices) + "/" + std::to_string(popIdx) + ".txt");
+        std::ifstream popFile("genpop/" + std::to_string(nVertices) + "/" + std::to_string(popIdx) + ".txt");
 
         for (auto& p: pred) {
             popFile >> p;
