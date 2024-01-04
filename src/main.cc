@@ -154,7 +154,7 @@ int main (int argc, char* argv[]) {
 
     std::vector<std::vector<int>> othResponses = { hTree, gTree, bTree, optBstTree };
 
-    if (!shuffle) {
+    if (shuffle) {
         std::ofstream geneticPredFile(
             baseFolderName + "genetic/" + std::to_string(testNumber) + ".out"
         );
@@ -162,7 +162,7 @@ int main (int argc, char* argv[]) {
         int numGen;
         const clock_t genBeginTime = std::clock();
         std::vector<int> geneticTree = geneticAlgorithm(
-            1000, 100, nVertices, genTotalCost, numGen, queries, othResponses=othResponses
+            1000, 0, 100, nVertices, genTotalCost, numGen, queries, othResponses, 0.15, 0.40, 0.02, 0.20
         );
         double genSec = double(std::clock() - genBeginTime) / CLOCKS_PER_SEC;
 

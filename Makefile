@@ -4,6 +4,7 @@ BINDIR := bin
 
 MAIN := $(SRCDIR)/main.cc
 POP := $(SRCDIR)/popGen.cc
+WORK := $(SRCDIR)/workload.cc
 
 CFLAGS := -std=c++17
 
@@ -17,6 +18,10 @@ pop:
 	@mkdir -p $(BINDIR)
 	$(CC) $(CFLAGS) $(INC) $(POP) $^ -o $(BINDIR)/pop
 
+work:
+	@mkdir -p $(BINDIR)
+	$(CC) $(CFLAGS) $(INC) $(WORK) $^ -o $(BINDIR)/work
+
 all: main
 
 run:
@@ -24,5 +29,8 @@ run:
 
 gen:
 	$(BINDIR)/pop ${ARGS}
+
+gen-input:
+	$(BINDIR)/work ${ARGS}
 
 .PHONY: clean coverage

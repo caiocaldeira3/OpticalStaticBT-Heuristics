@@ -6,6 +6,8 @@ import numpy as np
 if len(sys.argv) != 4:
     print("the script must be called with the probabilities ")
 
+    raise Exception
+
 weight_name = sys.argv[1]
 temporal = float(sys.argv[2])
 error = float(sys.argv[3])
