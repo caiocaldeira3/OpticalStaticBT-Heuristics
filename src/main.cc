@@ -162,7 +162,7 @@ int main (int argc, char* argv[]) {
         int numGen;
         const clock_t genBeginTime = std::clock();
         std::vector<int> geneticTree = geneticAlgorithm(
-            1000, 0, 100, nVertices, genTotalCost, numGen, queries, othResponses, 0.15, 0.40, 0.02, 0.20
+            1000, 0, 100, INF, nVertices, genTotalCost, numGen, queries, othResponses, 0.15, 0.40, 0.02, 0.20
         );
         double genSec = double(std::clock() - genBeginTime) / CLOCKS_PER_SEC;
 
