@@ -27,8 +27,17 @@ int main (int argc, char* argv[]) {
 
     std::ifstream weightFile("weights/" + weightName);
 
+    std::string str_num;
     int src, dst, weight;
-    while (weightFile >> src >> dst >> weight) {
+    while (std::getline(weightFile, str_num, ',')) {
+        src = std::stoi(str_num);
+
+        std::getline(weightFile, str_num, ',');
+        dst = std::stoi(str_num);
+
+        std::getline(weightFile, str_num);
+        weight = std::stoi(str_num);
+
         weights[{std::min(src, dst), std::max(src, dst)}] = weight;
 
     }
