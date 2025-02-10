@@ -119,7 +119,7 @@ int main (int argc, char* argv[]) {
         double flowSize = srcFlowSize / dstVertices.size();
 
         for (int dst: dstVertices) {
-            matrixFile << src << "," << dst << "," << flowSize << std::endl;
+            matrixFile << src << " " << dst << " " << flowSize << std::endl;
         }
 
         if (erased) {
