@@ -5,8 +5,15 @@
 #include <vector>
 #include <iostream>
 
+#define DEBUG std::cout<<"---------------------------------------"<<std::endl
 
-static const int INF = 0x3f3f3f3f;
+struct VectorLimits_t {
+    int leftLimit;
+    int rightLimit;
+};
+
+static const long long INF = 0x3f3f3f3f;
+static const long long LINF = 0x3f3f3f3f3f3f3f3f;
 typedef std::pair<int,int> query;
 
 bool isValidBinaryTree (const std::vector<int>& pred, bool debug = false) {
@@ -77,6 +84,30 @@ bool isValidBinaryTree (const std::vector<int>& pred, bool debug = false) {
     return true;
 }
 
+int getPreLCA (int idx, int odx, const std::vector<int>& pred) {
+    std::queue<int> q;
+    q.push(idx);
+    q.push(odx);
+
+    while (!q.empty()) {
+        int nxt = q.front(); q.pop();
+        if (pred[nxt] == idx) {
+            return nxt;
+
+        } else if (pred[nxt] == odx) {
+            return nxt;
+
+        } else if (pred[nxt] == -1) {
+            continue;
+
+        }
+
+        q.push(pred[nxt]);
+    }
+
+    return -1;
+}
+
 std::vector<std::vector<int>> buildOccurrences (
     int nVertices, const std::vector<query>& queries
 ) {
@@ -113,28 +144,40 @@ void computeDistances (
     }
 }
 
-int getPreLCA (int idx, int odx, const std::vector<int>& pred) {
-    std::queue<int> q;
-    q.push(idx);
-    q.push(odx);
+void buildBalancedBinaryTree (
+    const std::vector<int>& vertices,
+    std::vector<std::vector<int>>& tree, VectorLimits_t limits, int parent
+) {
+    if (limits.leftLimit == limits.rightLimit)
+        return;
 
-    while (!q.empty()) {
-        int nxt = q.front(); q.pop();
-        if (pred[nxt] == idx) {
-            return nxt;
-
-        } else if (pred[nxt] == odx) {
-            return nxt;
-
-        } else if (pred[nxt] == -1) {
-            continue;
-
-        }
-
-        q.push(pred[nxt]);
+    int root = (limits.leftLimit + limits.rightLimit) / 2;
+    if (parent != -1) {
+        tree[parent].push_back(vertices[root]);
+        tree[vertices[root]].push_back(parent);
     }
 
-    return -1;
+    buildBalancedBinaryTree(vertices, tree, { limits.leftLimit, root }, vertices[root]);
+    buildBalancedBinaryTree(vertices, tree, { root + 1, limits.rightLimit }, vertices[root]);
+}
+
+double NEWtreeCost (
+    const std::vector<std::vector<int>>& tree,
+    const std::vector<std::vector<double>>& demandMatrix
+) {
+    int nVertices = tree.size();
+    std::vector<std::vector<int>> distances(nVertices, std::vector<int>(nVertices, INF));
+    computeDistances(nVertices, tree, distances);
+    double totalCost = 0;
+
+    for (int src = 0; src < nVertices; src++) {
+        for (int dst = 0; dst < nVertices; dst++) {
+            totalCost += distances[src][dst] * demandMatrix[src][dst];
+
+        }
+    }
+
+    return totalCost;
 }
 
 int treeCost (const std::vector<int>& preds, const std::vector<query>& queries) {
