@@ -3,3 +3,4 @@ input/*
 bin/*
 .vscode/*
 output/*
+weights/*
