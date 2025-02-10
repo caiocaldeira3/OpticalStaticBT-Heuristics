@@ -6,15 +6,11 @@
 #include <vector>
 #include <algorithm>
 
+#include "util.hh"
 
 struct CostGain_t {
     double costGain;
     std::pair<int, int> vertices;
-};
-
-struct VectorLimits_t {
-    int leftLimit;
-    int rightLimit;
 };
 
 bool compareCostGainDecreasing (const CostGain_t& a, const CostGain_t& b) {
@@ -24,7 +20,7 @@ bool compareCostGainDecreasing (const CostGain_t& a, const CostGain_t& b) {
 double computeCostGainBasic (
     int leftVertex, int rightVertex,
     const std::vector<std::vector<double>>& demandMatrix,
-    const std::vector<int>& vertices, 
+    const std::vector<int>& vertices,
     const VectorLimits_t& leftLimits, const VectorLimits_t& rightLimits
 ) {
     double costGain = 0;
@@ -46,8 +42,11 @@ double computeCostGainBasic (
 
 void graphReordering (
     const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
-    const VectorLimits_t& vectorLimits, int& maxDepth, int maxIterations = 20
+    const VectorLimits_t& vectorLimits, int maxDepth, int maxIterations = 20
 ) {
+    if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 1)
+        return;
+
     int mid = (vectorLimits.leftLimit + vectorLimits.rightLimit) / 2;
     VectorLimits_t leftLimits = { vectorLimits.leftLimit, mid };
     VectorLimits_t rightLimits = { mid, vectorLimits.rightLimit };
@@ -56,7 +55,7 @@ void graphReordering (
         std::vector<CostGain_t> costGains;
         std::set<int> swappedVertices;
 
-        for (int leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) { 
+        for (int leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
             int leftVertex = vertices[leftIdx];
             for (int rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
                 int rightVertex = vertices[rightIdx];
@@ -87,6 +86,22 @@ void graphReordering (
             break;
     }
 
-    graphReordering(demandMatrix, vertices, leftLimits, maxDepth, maxIterations);
-    graphReordering(demandMatrix, vertices, rightLimits, maxDepth, maxIterations);
+    graphReordering(demandMatrix, vertices, leftLimits, maxDepth - 1, maxIterations);
+    graphReordering(demandMatrix, vertices, rightLimits, maxDepth - 1, maxIterations);
+}
+
+std::vector<std::vector<double>> reconfigureDemandMatrix (
+    const std::vector<int> graphNewOrder, const std::vector<std::vector<double>>& demandMatrix
+) {
+    int nVertices = graphNewOrder.size();
+    std::vector<std::vector<double>> newDemandMatrix(nVertices, std::vector<double>(nVertices, 0.0));
+
+    for (int src = 0; src < nVertices; src++) {
+        for (int dst = 0; dst < nVertices; dst++) {
+            newDemandMatrix[src][dst] = demandMatrix[graphNewOrder[src]][graphNewOrder[dst]];
+        }
+    }
+
+    return newDemandMatrix;
+
 }
