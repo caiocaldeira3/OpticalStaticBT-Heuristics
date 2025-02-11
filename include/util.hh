@@ -5,6 +5,8 @@
 #include <vector>
 #include <iostream>
 
+#include <cmath>
+
 #define DEBUG std::cout<<"---------------------------------------"<<std::endl
 
 struct VectorLimits_t {
@@ -106,19 +108,6 @@ int getPreLCA (int idx, int odx, const std::vector<int>& pred) {
     }
 
     return -1;
-}
-
-std::vector<std::vector<int>> buildOccurrences (
-    int nVertices, const std::vector<query>& queries
-) {
-    std::vector<std::vector<int>> occ(nVertices, std::vector<int>(nVertices, 0));
-    for (const auto [src, dst]: queries) {
-        occ[src][dst]++;
-        occ[dst][src]++;
-
-    }
-
-    return occ;
 }
 
 void computeDistances (

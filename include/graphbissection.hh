@@ -6,7 +6,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "util.hh"
+#include <util.hh>
 
 struct CostGain_t {
     double costGain;
