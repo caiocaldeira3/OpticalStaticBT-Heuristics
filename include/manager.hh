@@ -42,11 +42,10 @@ Response_t testBissectionPlusOBST (
     int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
 
     graphReordering(demandMatrix, vertices, vectorLimits, maxDepth);
-
     std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
 
     return {
-        optimalBST(nVertices, reorderedDemand, true),
+        optimalBST(nVertices, reorderedDemand),
         vertices
     };
 }
