@@ -150,7 +150,7 @@ void buildBalancedBinaryTree (
     buildBalancedBinaryTree(vertices, tree, { root + 1, limits.rightLimit }, vertices[root]);
 }
 
-double NEWtreeCost (
+double treeCost (
     const std::vector<std::vector<int>>& tree,
     const std::vector<std::vector<double>>& demandMatrix
 ) {
@@ -164,33 +164,6 @@ double NEWtreeCost (
             totalCost += distances[src][dst] * demandMatrix[src][dst];
 
         }
-    }
-
-    return totalCost;
-}
-
-int treeCost (const std::vector<int>& preds, const std::vector<query>& queries) {
-    int nVertices = preds.size();
-    std::vector<std::vector<int>> distances(nVertices, std::vector<int>(nVertices, INF));
-    std::vector<std::vector<int>> tree(nVertices);
-    int root;
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        if (preds[vIdx] == -1) {
-            root = vIdx;
-
-        } else {
-            tree[preds[vIdx]].push_back(vIdx);
-            tree[vIdx].push_back(preds[vIdx]);
-
-        }
-    }
-
-    computeDistances(nVertices, tree, distances);
-    int totalCost = 0;
-
-    for (query qry: queries) {
-        totalCost += distances[qry.first][qry.second];
-
     }
 
     return totalCost;

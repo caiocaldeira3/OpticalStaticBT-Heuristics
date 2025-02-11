@@ -11,90 +11,29 @@ struct Response_t {
     std::vector<int> graphOrdering;
 };
 
-Response_t testRawGraphBissection (int nVertices, const std::vector<std::vector<double>>& demandMatrix) {
-    std::vector<int> vertices(nVertices);
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        vertices[vIdx] = vIdx;
-    }
-
-    VectorLimits_t vectorLimits = { 0, nVertices };
-    int maxDepth = ceil(log(nVertices) / log(2)) + 1;
-
-    graphReordering(demandMatrix, vertices, vectorLimits, INF);
+double testGraphOrder (const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix) {
+    int nVertices = vertices.size();
 
     std::vector<std::vector<int>> tree(nVertices, std::vector<int>());
-    buildBalancedBinaryTree(vertices, tree, vectorLimits, -1);
+    buildBalancedBinaryTree(vertices, tree, {0, nVertices}, -1);
 
-    return {
-        NEWtreeCost(tree, demandMatrix),
-        vertices
-    };
-}
-
-Response_t testBissectionPlusOBST (
-    int nVertices, const std::vector<std::vector<double>>& demandMatrix, bool bounded = false
-) {
-    std::vector<int> vertices(nVertices);
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        vertices[vIdx] = vIdx;
-    }
-
-    VectorLimits_t vectorLimits = { 0, nVertices };
-    int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
-
-    graphReordering(demandMatrix, vertices, vectorLimits, maxDepth);
     std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
 
-    return {
-        optimalBST(nVertices, reorderedDemand),
-        vertices
-    };
+    return treeCost(tree, reorderedDemand);
 }
 
-Response_t testOBST (
-    int nVertices, const std::vector<std::vector<double>>& demandMatrix
+double testOBST (
+    const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix
 ) {
-    std::vector<int> vertices;
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        vertices.push_back(vIdx);
-    }
-
-    return {
-        optimalBST(nVertices, demandMatrix),
-        vertices
-    };
-}
-
-Response_t testBissectionGreedy (
-    int nVertices, const std::vector<std::vector<double>>& demandMatrix, bool bounded = false
-) {
-    std::vector<int> vertices(nVertices);
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        vertices[vIdx] = vIdx;
-    }
-
-    VectorLimits_t vectorLimits = { 0, nVertices };
-    int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
-
-    graphReordering(demandMatrix, vertices, vectorLimits, maxDepth);
     std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
 
-    return {
-        greedyConstructor(reorderedDemand, nVertices),
-        vertices
-    };
+    return optimalBST(vertices.size(), reorderedDemand);
 }
 
-Response_t testGreedy (
-    int nVertices, const std::vector<std::vector<double>>& demandMatrix
+double testGreedy (
+    const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix, bool bounded = false
 ) {
-    std::vector<int> vertices;
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        vertices.push_back(vIdx);
-    }
+    std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
 
-    return {
-        greedyConstructor(demandMatrix, nVertices),
-        vertices
-    };
+    return greedyConstructor(vertices.size(), reorderedDemand);
 }

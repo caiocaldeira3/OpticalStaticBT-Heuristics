@@ -79,7 +79,7 @@ void insertVertexGreedily (
 }
 
 double greedyConstructor (
-    const std::vector<std::vector<double>>& demandMatrix, const int nVertices
+    int nVertices, const std::vector<std::vector<double>>& demandMatrix
 ) {
     std::vector<std::vector<int>> distances(nVertices, std::vector<int>(nVertices, 0));
     std::vector<int> pred(nVertices, INF);
