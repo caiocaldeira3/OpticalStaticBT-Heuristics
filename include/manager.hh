@@ -1,9 +1,8 @@
 #pragma once
 
-
-#include "util.hh"
-#include "optbst.hh"
-#include "graphbissection.hh"
+#include <util.hh>
+#include <optbst.hh>
+#include <graphbissection.hh>
 
 
 struct Response_t {
@@ -31,16 +30,19 @@ Response_t testRawGraphBissection (int nVertices, const std::vector<std::vector<
     };
 }
 
-Response_t testBissectionPlusOBST (int nVertices, const std::vector<std::vector<double>>& demandMatrix) {
+Response_t testBissectionPlusOBST (
+    int nVertices, const std::vector<std::vector<double>>& demandMatrix, bool bounded = false
+) {
     std::vector<int> vertices(nVertices);
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         vertices[vIdx] = vIdx;
     }
 
     VectorLimits_t vectorLimits = { 0, nVertices };
-    int maxDepth = ceil(log(nVertices) / log(2)) + 1;
+    int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
 
-    graphReordering(demandMatrix, vertices, vectorLimits, INF);
+    graphReordering(demandMatrix, vertices, vectorLimits, maxDepth);
+
     std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
 
     return {
