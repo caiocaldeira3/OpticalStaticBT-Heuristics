@@ -72,13 +72,13 @@ int main (int argc, char* argv[]) {
         );
         rawTimeSpent << rawSec << std::endl;
 
-        std::ofstream rawOrderingFile(
-            baseFolderName + "raw/ordering_" + std::to_string(testNumber) + ".out", std::ios_base::app
+        std::ofstream orderingFile(
+            baseFolderName + "orderings/ordering_" + std::to_string(testNumber) + ".out"
         );
         for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-            rawOrderingFile << rawBissecResponse.graphOrdering[vIdx] << " ";
+            orderingFile << rawBissecResponse.graphOrdering[vIdx] << " ";
         }
-        rawOrderingFile << std::endl;
+        orderingFile << std::endl;
     }
 
     {
@@ -101,13 +101,13 @@ int main (int argc, char* argv[]) {
         );
         obstTimeSpent << obstSec << std::endl;
 
-        std::ofstream obstOrderingFile(
-            baseFolderName + "obst-bissection/ordering_" + std::to_string(testNumber) + ".out", std::ios_base::app
+        std::ofstream orderingFile(
+            baseFolderName + "orderings/ordering_" + std::to_string(testNumber) + ".out"
         );
         for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-            obstOrderingFile << obstBissecResponse.graphOrdering[vIdx] << " ";
+            orderingFile << obstBissecResponse.graphOrdering[vIdx] << " ";
         }
-        obstOrderingFile << std::endl;
+        orderingFile << std::endl;
     }
 }
 
