@@ -49,3 +49,17 @@ Response_t testBissectionPlusOBST (
         vertices
     };
 }
+
+Response_t testOBST (
+    int nVertices, const std::vector<std::vector<double>>& demandMatrix
+) {
+    std::vector<int> vertices;
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        vertices.push_back(vIdx);
+    }
+
+    return {
+        optimalBST(nVertices, demandMatrix),
+        vertices
+    };
+}

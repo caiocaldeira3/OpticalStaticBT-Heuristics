@@ -49,12 +49,9 @@ int main (int argc, char* argv[]) {
     std::string baseFolderName = ("output/" + inputName + "/");
 
     namespace fs = std::filesystem;
-    fs::create_directories(baseFolderName + "raw/");
-    fs::create_directories(baseFolderName + "obst-bissection/");
+    fs::create_directories(baseFolderName + "orderings/");
 
     {
-        std::ofstream rawCostFile(baseFolderName + "raw/" + std::to_string(testNumber) );
-
         const clock_t rawBeginTime = std::clock();
         Response_t rawBissecResponse = testRawGraphBissection(nVertices, demandMatrix);
         double rawSec = double(std::clock() - rawBeginTime) / CLOCKS_PER_SEC;
@@ -82,8 +79,6 @@ int main (int argc, char* argv[]) {
     }
 
     {
-        std::ofstream obstCostFile(baseFolderName + "obst-bissection/" + std::to_string(testNumber) );
-
         const clock_t obstBeginTime = std::clock();
         Response_t obstBissecResponse = testBissectionPlusOBST(nVertices, demandMatrix);
         double obstSec = double(std::clock() - obstBeginTime) / CLOCKS_PER_SEC;
@@ -109,7 +104,23 @@ int main (int argc, char* argv[]) {
         }
         orderingFile << std::endl;
     }
+
+    {
+        const clock_t obstOnlyBeginTime = std::clock();
+        Response_t obstOnlyResponse = testOBST(nVertices, demandMatrix);
+        double obstOnlySec = double(std::clock() - obstOnlyBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "OBST Only Cost: " << obstOnlyResponse.cost << std::endl;
+        std::cout << "OBST Only Time Spent: " << obstOnlySec << std::endl;
+
+        std::ofstream obstOnlyCostsFile(
+            baseFolderName + "obst-only_costs.out", std::ios_base::app
+        );
+        obstOnlyCostsFile << obstOnlyResponse.cost << std::endl;
+
+        std::ofstream obstOnlyTimeSpent(
+            baseFolderName + "obst-only_time_spent.out", std::ios_base::app
+        );
+        obstOnlyTimeSpent << obstOnlySec << std::endl;
+    }
 }
-
-
-
