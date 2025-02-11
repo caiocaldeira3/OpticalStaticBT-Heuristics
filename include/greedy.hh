@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <assert.h>
 #include <algorithm>
-#include "util.hh"
+#include <util.hh>
 
 
 std::vector<int> rank;
@@ -20,8 +20,8 @@ class CompareRank {
 };
 
 void insertVertexGreedily (
-    int vIdx, int& totalCost, std::map<int, int>& leafes, std::vector<std::vector<int>>& distances,
-    const std::vector<std::vector<int>>& occs, std::vector<int>& pred, std::vector<int>& rank
+    int vIdx, double& totalCost, std::map<int, int>& leafes, std::vector<std::vector<int>>& distances,
+    const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& pred, std::vector<int>& rank
 ) {
     if (pred[vIdx] != INF)
         return;
@@ -35,17 +35,18 @@ void insertVertexGreedily (
 
     }
 
-    int pMin = INF;
-    int pIdx = -1;
+    double pMin = LINF;
+    double pIdx = -1;
 
     for (const auto [leaf, degree]: leafes) {
-        int cCost = 0;
+        double cCost = 0;
 
-        for (int dst = 0; dst < occs[vIdx].size(); dst++) {
+        for (int dst = 0; dst < demandMatrix[vIdx].size(); dst++) {
             if (pred[dst] == INF)
                 continue;
 
-            cCost += (distances[leaf][dst] + 1) * occs[vIdx][dst];
+            cCost += (distances[leaf][dst] + 1) * demandMatrix[vIdx][dst];
+            cCost += (distances[vIdx][dst] + 1) * demandMatrix[dst][vIdx];
 
         }
 
@@ -68,7 +69,7 @@ void insertVertexGreedily (
     leafes[vIdx] = 2;
     pred[vIdx] = pIdx;
     rank[vIdx] = rank[pIdx] + 1;
-    for (int dst = 0; dst < occs[vIdx].size(); dst++) {
+    for (int dst = 0; dst < demandMatrix[vIdx].size(); dst++) {
         if (pred[dst] == INF || vIdx == dst)
             continue;
 
@@ -77,60 +78,36 @@ void insertVertexGreedily (
     }
 }
 
-std::vector<int> greedyConstructor (
-    std::vector<query> queries, const int nVertices, int& totalCost
+double greedyConstructor (
+    const std::vector<std::vector<double>>& demandMatrix, const int nVertices
 ) {
     std::vector<std::vector<int>> distances(nVertices, std::vector<int>(nVertices, 0));
-    std::vector<std::vector<int>> occ = buildOccurrences(nVertices, queries);
     std::vector<int> pred(nVertices, INF);
     rank = std::vector<int>(nVertices, INF);
     std::map<int, int> leafes;
-    totalCost = 0;
+    std::set<int> insertedVertices;
 
-    for (auto [src, dst]: queries) {
-        if (pred[src] == INF && pred[dst] == INF && rand() % 2 == 1) {
-            std::swap(src, dst);
+    double totalCost = 0;
 
-        }
-
-        insertVertexGreedily(src, totalCost, leafes, distances, occ, pred, rank);
-        insertVertexGreedily(dst, totalCost, leafes, distances, occ, pred, rank);
-
-    }
-
-
-    std::priority_queue<
-        std::pair<int, int>, std::vector<std::pair<int, int>>, CompareRank
-    > avLeafes;
-
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        if (pred[vIdx] == INF)
-            continue;
-
-        auto it = leafes.find(vIdx);
-        if (it == leafes.end())
-            continue;
-
-        avLeafes.push({ it->first, it->second });
-    }
-
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
-        if (pred[vIdx] != INF)
-            continue;
-
-        std::pair<int, int> leaf = avLeafes.top(); avLeafes.pop();
-        if (leaf.second == 2) {
-            avLeafes.push({ leaf.first, 1 });
+    std::vector<std::pair<double, std::pair<int, int>>> queries;
+    for (int src = 0; src < nVertices; src++) {
+        for (int dst = 0; dst < nVertices; dst++) {
+            queries.push_back({ -demandMatrix[src][dst], { src, dst } });
 
         }
+    }
+    std::sort(queries.begin(), queries.end());
 
-        pred[vIdx] = leaf.first;
-        rank[vIdx] = rank[leaf.first];
-        avLeafes.push({ vIdx, 2 });
+    for (const auto& query : queries) {
+        auto [src, dst] = query.second;
+        insertVertexGreedily(src, totalCost, leafes, distances, demandMatrix, pred, rank);
+        insertVertexGreedily(dst, totalCost, leafes, distances, demandMatrix, pred, rank);
 
+        insertedVertices.insert(src);
+        insertedVertices.insert(dst);
+        if (insertedVertices.size() == nVertices)
+            break;
     }
 
-    assert (isValidBinaryTree(pred));
-
-    return pred;
+    return totalCost;
 }

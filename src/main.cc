@@ -6,8 +6,8 @@
 #include <random>
 #include <chrono>
 
-#include "argparse/argparse.hh"
-#include "manager.hh"
+#include <argparse/argparse.hh>
+#include <manager.hh>
 
 int main (int argc, char* argv[]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -122,5 +122,51 @@ int main (int argc, char* argv[]) {
             baseFolderName + "obst-only_time_spent.out", std::ios_base::app
         );
         obstOnlyTimeSpent << obstOnlySec << std::endl;
+    }
+
+    {
+        const clock_t greedyBissectionBeginTime = std::clock();
+        Response_t greedyBissectionResponse = testBissectionGreedy(nVertices, demandMatrix);
+        double greedyBissectionSec = double(std::clock() - greedyBissectionBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "Greedy + Bissection Cost: " << greedyBissectionResponse.cost << std::endl;
+        std::cout << "Greedy + Bissection Time Spent: " << greedyBissectionSec << std::endl;
+
+        std::ofstream greedyBissectionCostsFile(
+            baseFolderName + "greedy-bissection_costs.out", std::ios_base::app
+        );
+        greedyBissectionCostsFile << greedyBissectionResponse.cost << std::endl;
+
+        std::ofstream greedyBissectionTimeSpent(
+            baseFolderName + "greedy-bissection_time_spent.out", std::ios_base::app
+        );
+        greedyBissectionTimeSpent << greedyBissectionSec << std::endl;
+
+        std::ofstream orderingFile(
+            baseFolderName + "orderings/ordering_" + std::to_string(testNumber) + ".out"
+        );
+        for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+            orderingFile << greedyBissectionResponse.graphOrdering[vIdx] << " ";
+        }
+        orderingFile << std::endl;
+    }
+
+    {
+        const clock_t greedyBeginTime = std::clock();
+        Response_t greedyResponse = testGreedy(nVertices, demandMatrix);
+        double greedySec = double(std::clock() - greedyBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "Greedy Cost: " << greedyResponse.cost << std::endl;
+        std::cout << "Greedy Time Spent: " << greedySec << std::endl;
+
+        std::ofstream greedyCostsFile(
+            baseFolderName + "greedy_costs.out", std::ios_base::app
+        );
+        greedyCostsFile << greedyResponse.cost << std::endl;
+
+        std::ofstream greedyTimeSpent(
+            baseFolderName + "greedy_time_spent.out", std::ios_base::app
+        );
+        greedyTimeSpent << greedySec << std::endl;
     }
 }

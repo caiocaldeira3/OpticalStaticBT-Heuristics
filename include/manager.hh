@@ -2,6 +2,7 @@
 
 #include <util.hh>
 #include <optbst.hh>
+#include <greedy.hh>
 #include <graphbissection.hh>
 
 
@@ -60,6 +61,40 @@ Response_t testOBST (
 
     return {
         optimalBST(nVertices, demandMatrix),
+        vertices
+    };
+}
+
+Response_t testBissectionGreedy (
+    int nVertices, const std::vector<std::vector<double>>& demandMatrix, bool bounded = false
+) {
+    std::vector<int> vertices(nVertices);
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        vertices[vIdx] = vIdx;
+    }
+
+    VectorLimits_t vectorLimits = { 0, nVertices };
+    int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
+
+    graphReordering(demandMatrix, vertices, vectorLimits, maxDepth);
+    std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
+
+    return {
+        greedyConstructor(reorderedDemand, nVertices),
+        vertices
+    };
+}
+
+Response_t testGreedy (
+    int nVertices, const std::vector<std::vector<double>>& demandMatrix
+) {
+    std::vector<int> vertices;
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        vertices.push_back(vIdx);
+    }
+
+    return {
+        greedyConstructor(demandMatrix, nVertices),
         vertices
     };
 }
