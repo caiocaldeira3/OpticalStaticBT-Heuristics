@@ -4,21 +4,22 @@
 #include <assert.h>
 
 
-struct IntResp_t{
-    int cost;
+struct IntervalRoot_t{
+    double cost;
     int root;
 };
 
-std::vector<std::vector<int>> buildAggregateDemand (
-    int nVertices, std::vector<std::vector<int>> weights
+std::vector<std::vector<double>> buildAggregateDemand (
+    int nVertices, const std::vector<std::vector<double>>& demandMatrix
 ) {
-    std::vector<std::vector<int>> nodeWeight(nVertices, std::vector<int>(nVertices, 0));
-    std::vector<std::vector<int>> aggDemand(nVertices, std::vector<int>(nVertices, 0));
-    std::vector<std::vector<int>> teste(nVertices, std::vector<int>(nVertices, 0));
+    std::vector<std::vector<double>> nodeWeight(nVertices, std::vector<double>(nVertices, 0));
+    std::vector<std::vector<double>> aggDemand(nVertices, std::vector<double>(nVertices, 0));
 
     for (int i = 0; i < nVertices; i++) {
         for (int j = 0; j < nVertices; j++) {
-            nodeWeight[i][j] = weights[i][j] + (j == 0 ? 0 : nodeWeight[i][j - 1]);
+            nodeWeight[i][j] = (
+                demandMatrix[i][j] + demandMatrix[j][i] + (j == 0 ? 0 : nodeWeight[i][j - 1])
+            );
         }
     }
 
@@ -35,75 +36,96 @@ std::vector<std::vector<int>> buildAggregateDemand (
     return aggDemand;
 }
 
-IntResp_t buildOptimalBST (
-    int i, int j, std::vector<std::vector<int>> aggr, std::vector<std::vector<IntResp_t>>& intervals
+std::vector<std::vector<double>> buildAggregateDemandN4 (
+    int nVertices, const std::vector<std::vector<double>>& demandMatrix
 ) {
-    int nVertice = j + 1;
-    IntResp_t root{ INF, -1 };
+    std::vector<std::vector<double>> aggDemand(nVertices, std::vector<double>(nVertices, 0));
 
-    for (int i = 0; i < nVertice; i++)
-        intervals[i][i] = IntResp_t{ 0, i };
+    for (int lIdx = 0; lIdx < nVertices; lIdx++) {
+        for (int rIdx = lIdx; rIdx < nVertices; rIdx++) {
+            for (int k = lIdx; k <= rIdx; k++) {
+                for (int i = 0; i < lIdx; i++) {
+                    aggDemand[lIdx][rIdx] += demandMatrix[i][k] + demandMatrix[k][i];
+                }
+                for (int i = rIdx + 1; i < nVertices; i++) {
+                    aggDemand[lIdx][rIdx] += demandMatrix[i][k] + demandMatrix[k][i];
+                }
+            }
+        }
+    }
 
-    for (int delta = 1; delta < nVertice; delta++) {
-        for (int i = 0; i < nVertice; i++) {
-            int j = i + delta;
-            if (j >= nVertice)
+    return aggDemand;
+}
+
+IntervalRoot_t buildOptimalBST (
+    int nVertices, const std::vector<std::vector<double>>& aggr,
+    std::vector<std::vector<IntervalRoot_t>>& intervals
+) {
+    for (int vIdx = 0; vIdx < nVertices; vIdx++)
+        intervals[vIdx][vIdx] = IntervalRoot_t{ 0, vIdx };
+
+    for (int delta = 1; delta < nVertices; delta++) {
+        for (int lIdx = 0; lIdx < nVertices; lIdx++) {
+            int rIdx = lIdx + delta;
+            if (rIdx >= nVertices)
                 continue;
 
-            for (int x = i; x <= j; x++) {
-                int cost = 0;
-                if (x != j)
-                    cost += intervals[x + 1][j].cost + aggr[x+1][j];
+            for (int x = lIdx; x <= rIdx; x++) {
+                double cost = 0;
+                if (x != rIdx)
+                    cost += intervals[x + 1][rIdx].cost + aggr[x+1][rIdx];
 
-                if (x != i)
-                    cost += intervals[i][x-1].cost + aggr[i][x-1];
+                if (x != lIdx)
+                    cost += intervals[lIdx][x-1].cost + aggr[lIdx][x-1];
 
-                if (cost < intervals[i][j].cost) {
-                    intervals[i][j] = { cost, x };
+                if (cost < intervals[lIdx][rIdx].cost) {
+                    intervals[lIdx][rIdx] = { cost, x };
                 }
 
             }
         }
     }
 
-    return intervals[0][nVertice - 1];
+    return intervals[0][nVertices - 1];
 }
 
-std::vector<int> optimalBST (
-    const std::vector<query>& queries, int nVertices, int& totalCost
+double optimalBST (
+    int nVertices, const std::vector<std::vector<double>>& demandMatrix,
+    bool verbose = false
 ) {
-    std::vector<std::vector<int>> occ = buildOccurrences(nVertices, queries);
-    std::vector<std::vector<int>> agg = buildAggregateDemand(nVertices, occ);
-    std::vector<std::vector<IntResp_t>> intervals(
-        nVertices, std::vector<IntResp_t>(nVertices, IntResp_t{ INF, -1 }
+    std::vector<std::vector<IntervalRoot_t>> intervals(
+        nVertices, std::vector<IntervalRoot_t>(nVertices, IntervalRoot_t{ INF, -1 }
     ));
+    std::vector<std::vector<double>> agg = buildAggregateDemand(nVertices, demandMatrix);
     std::vector<int> pred(nVertices);
     std::queue<std::pair<int, std::pair<int, int>>> q;
 
-    IntResp_t root = buildOptimalBST(0, nVertices - 1, agg, intervals);
-    totalCost = root.cost;
+    IntervalRoot_t root = buildOptimalBST(nVertices, agg, intervals);
 
-    q.push({ -1, { 0, nVertices - 1 } });
+    if (verbose) {
+        q.push({ -1, { 0, nVertices - 1 } });
 
-    while (!q.empty()) {
-        auto [ pIdx, inter ] = q.front(); q.pop();
-        IntResp_t intResp = intervals[inter.first][inter.second];
+        while (!q.empty()) {
+            auto [ pIdx, inter ] = q.front(); q.pop();
+            IntervalRoot_t intResp = intervals[inter.first][inter.second];
 
-        pred[intResp.root] = pIdx;
+            pred[intResp.root] = pIdx;
 
-        if (intResp.root != inter.first) {
-            q.push({ intResp.root, { inter.first, intResp.root - 1 } });
+            if (intResp.root != inter.first) {
+                q.push({ intResp.root, { inter.first, intResp.root - 1 } });
 
+            }
+
+            if (intResp.root != inter.second) {
+                q.push({ intResp.root, { intResp.root + 1, inter.second }});
+
+            }
         }
 
-        if (intResp.root != inter.second) {
-            q.push({ intResp.root, { intResp.root + 1, inter.second }});
-
+        for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+            std::cout << pred[vIdx] << " ";
         }
-
     }
 
-    assert (isValidBinaryTree(pred));
-
-    return pred;
+    return root.cost;
 }
