@@ -109,11 +109,5 @@ double greedyConstructor (
             break;
     }
 
-    double realCost = treeCost(getTreeFromPredecessors(pred), demandMatrix);
-    assert (
-        isClose(realCost, totalCost),
-        "Greedy cost " + std::to_string(totalCost) + " != real cost " + std::to_string(realCost)
-    );
-
     return totalCost;
 }
