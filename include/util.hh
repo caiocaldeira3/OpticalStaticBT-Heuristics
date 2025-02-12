@@ -171,6 +171,21 @@ void buildBalancedBinaryTree (
     buildBalancedBinaryTree(vertices, tree, { root + 1, limits.rightLimit }, vertices[root]);
 }
 
+std::vector<std::vector<double>> reconfigureDemandMatrix (
+    const std::vector<int> graphNewOrder, const std::vector<std::vector<double>>& demandMatrix
+) {
+    int nVertices = graphNewOrder.size();
+    std::vector<std::vector<double>> newDemandMatrix(nVertices, std::vector<double>(nVertices, 0.0));
+
+    for (int src = 0; src < nVertices; src++) {
+        for (int dst = 0; dst < nVertices; dst++) {
+            newDemandMatrix[src][dst] = demandMatrix[graphNewOrder[src]][graphNewOrder[dst]];
+        }
+    }
+
+    return newDemandMatrix;
+}
+
 double treeCost (
     const std::vector<std::vector<int>>& tree,
     const std::vector<std::vector<double>>& demandMatrix

@@ -27,14 +27,25 @@ double computeCostGainBasic (
 
     for (int idx = leftLimits.leftLimit; idx < leftLimits.rightLimit; idx++) {
         int othLeft = vertices[idx];
-        costGain -= demandMatrix[leftVertex][othLeft];
-        costGain += demandMatrix[rightVertex][othLeft];
+        if (othLeft == leftVertex || othLeft == rightVertex)
+            continue;
+
+        costGain += demandMatrix[leftVertex][othLeft];
+        costGain += demandMatrix[othLeft][leftVertex];
+        costGain -= demandMatrix[rightVertex][othLeft];
+        costGain -= demandMatrix[othLeft][rightVertex];
+
     }
 
     for (int idx = rightLimits.leftLimit; idx < rightLimits.rightLimit; idx++) {
         int othRight = vertices[idx];
-        costGain -= demandMatrix[rightVertex][othRight];
-        costGain += demandMatrix[leftVertex][othRight];
+        if (othRight == leftVertex || othRight == rightVertex)
+            continue;
+
+        costGain += demandMatrix[rightVertex][othRight];
+        costGain += demandMatrix[othRight][rightVertex];
+        costGain -= demandMatrix[leftVertex][othRight];
+        costGain -= demandMatrix[othRight][leftVertex];
     }
 
     return costGain;
@@ -42,7 +53,7 @@ double computeCostGainBasic (
 
 void graphReordering (
     const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
-    const VectorLimits_t& vectorLimits, int maxDepth, int maxIterations = 20
+    const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, int maxIterations = 20
 ) {
     if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 1)
         return;
@@ -55,15 +66,19 @@ void graphReordering (
         std::vector<CostGain_t> costGains;
         std::set<int> swappedVertices;
 
+        // #pragma omp parallel for collapse(2) shared(costGains) schedule(dynamic)
         for (int leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
-            int leftVertex = vertices[leftIdx];
             for (int rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
+                int leftVertex = vertices[leftIdx];
                 int rightVertex = vertices[rightIdx];
                 double costGain = computeCostGainBasic(
                     leftVertex, rightVertex, demandMatrix, vertices, leftLimits, rightLimits
                 );
 
-                costGains.push_back({ costGain, { leftVertex, rightVertex }});
+                #pragma omp critical
+                {
+                    costGains.push_back({ costGain, { leftVertex, rightVertex }});
+                }
             }
         }
 
@@ -86,22 +101,19 @@ void graphReordering (
             break;
     }
 
-    graphReordering(demandMatrix, vertices, leftLimits, maxDepth - 1, maxIterations);
-    graphReordering(demandMatrix, vertices, rightLimits, maxDepth - 1, maxIterations);
-}
-
-std::vector<std::vector<double>> reconfigureDemandMatrix (
-    const std::vector<int> graphNewOrder, const std::vector<std::vector<double>>& demandMatrix
-) {
-    int nVertices = graphNewOrder.size();
-    std::vector<std::vector<double>> newDemandMatrix(nVertices, std::vector<double>(nVertices, 0.0));
-
-    for (int src = 0; src < nVertices; src++) {
-        for (int dst = 0; dst < nVertices; dst++) {
-            newDemandMatrix[src][dst] = demandMatrix[graphNewOrder[src]][graphNewOrder[dst]];
+    if (parallelize) {
+        #pragma omp single nowait
+        {
+            for (const auto& limits : { leftLimits, rightLimits }) {
+                #pragma omp task
+                graphReordering(demandMatrix, vertices, limits, maxDepth - 1, maxIterations);
+            }
+            #pragma omp taskwait
         }
+
+    } else {
+        graphReordering(demandMatrix, vertices, leftLimits, maxDepth - 1, parallelize, maxIterations);
+        graphReordering(demandMatrix, vertices, rightLimits, maxDepth - 1, parallelize, maxIterations);
+
     }
-
-    return newDemandMatrix;
-
 }

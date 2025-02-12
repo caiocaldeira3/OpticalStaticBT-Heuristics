@@ -26,6 +26,12 @@ int main (int argc, char* argv[]) {
         .store_into(bounded)
         .help("if the bissection algorithm should be bounded");
 
+    bool parallelize;
+    parser.add_argument("-p")
+        .default_value(false)
+        .store_into(parallelize)
+        .help("if the bissection algorithm should be parallelized");
+
     int testNumber;
     parser.add_argument("--test-number")
         .default_value(0)
@@ -67,7 +73,10 @@ int main (int argc, char* argv[]) {
         VectorLimits_t vectorLimits = { 0, nVertices };
         int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
 
-        graphReordering(demandMatrix, orderedVertices, vectorLimits, maxDepth);
+        const clock_t orderBeginTime = std::clock();
+        graphReordering(demandMatrix, orderedVertices, vectorLimits, maxDepth, parallelize);
+        double orderEndTime = double(std::clock() - orderBeginTime) / CLOCKS_PER_SEC;
+        std::cout << "Ordering Time Spent: " << orderEndTime << std::endl;
 
         std::ofstream orderingFile(
             baseFolderName + "orderings/ordering_" + std::to_string(testNumber) + ".out"
