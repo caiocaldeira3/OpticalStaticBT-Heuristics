@@ -16,7 +16,12 @@ struct VectorLimits_t {
 
 static const long long INF = 0x3f3f3f3f;
 static const long long LINF = 0x3f3f3f3f3f3f3f3f;
+static const double EPS = 1e-10;
 typedef std::pair<int,int> query;
+
+bool isClose (double a, double b, double eps = EPS) {
+    return std::abs(a - b) < eps;
+}
 
 bool isValidBinaryTree (const std::vector<int>& pred, bool debug = false) {
     std::vector<std::vector<int>> tree = std::vector<std::vector<int>>(
@@ -108,6 +113,22 @@ int getPreLCA (int idx, int odx, const std::vector<int>& pred) {
     }
 
     return -1;
+}
+
+std::vector<std::vector<int>> getTreeFromPredecessors (const std::vector<int>& pred) {
+    std::vector<std::vector<int>> tree = std::vector<std::vector<int>>(
+        pred.size(), std::vector<int>()
+    );
+
+    for (int i = 0; i < pred.size(); i++) {
+        if (pred[i] != -1) {
+            tree[pred[i]].push_back(i);
+            tree[i].push_back(pred[i]);
+
+        }
+    }
+
+    return tree;
 }
 
 void computeDistances (

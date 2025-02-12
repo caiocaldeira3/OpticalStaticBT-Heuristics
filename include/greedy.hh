@@ -46,7 +46,7 @@ void insertVertexGreedily (
                 continue;
 
             cCost += (distances[leaf][dst] + 1) * demandMatrix[vIdx][dst];
-            cCost += (distances[vIdx][dst] + 1) * demandMatrix[dst][vIdx];
+            cCost += (distances[leaf][dst] + 1) * demandMatrix[dst][vIdx];
 
         }
 
@@ -108,6 +108,12 @@ double greedyConstructor (
         if (insertedVertices.size() == nVertices)
             break;
     }
+
+    double realCost = treeCost(getTreeFromPredecessors(pred), demandMatrix);
+    assert (
+        isClose(realCost, totalCost),
+        "Greedy cost " + std::to_string(totalCost) + " != real cost " + std::to_string(realCost)
+    );
 
     return totalCost;
 }
