@@ -79,12 +79,14 @@ int main (int argc, char* argv[]) {
     }
 
     {
+        std::cout << "Raw Bissection" << std::endl;
+
         const clock_t rawBeginTime = std::clock();
         double rawBissecResponse = testGraphOrder(orderedVertices, demandMatrix);
         double rawSec = double(std::clock() - rawBeginTime) / CLOCKS_PER_SEC;
 
-        std::cout << "Raw Bissection Cost: " << rawBissecResponse << std::endl;
-        std::cout << "Raw Time Spent: " << rawSec << std::endl;
+        std::cout << "\tRaw Bissection Cost: " << rawBissecResponse << std::endl;
+        std::cout << "\tRaw Time Spent: " << rawSec << std::endl;
 
         std::ofstream rawCostsFile(
             baseFolderName + "raw_costs.out", std::ios_base::app
@@ -98,12 +100,14 @@ int main (int argc, char* argv[]) {
     }
 
     {
+        std::cout << "OBST Bissection" << std::endl;
+
         const clock_t obstBeginTime = std::clock();
         double obstBissecResponse = testOBST(orderedVertices, demandMatrix);
         double obstSec = double(std::clock() - obstBeginTime) / CLOCKS_PER_SEC;
 
-        std::cout << "OBST Bissection Cost: " << obstBissecResponse << std::endl;
-        std::cout << "OBST Time Spent: " << obstSec << std::endl;
+        std::cout << "\tOBST Bissection Cost: " << obstBissecResponse << std::endl;
+        std::cout << "\tOBST Time Spent: " << obstSec << std::endl;
 
         std::ofstream obstCostsFile(
             baseFolderName + "obst-bissection_costs.out", std::ios_base::app
@@ -117,12 +121,14 @@ int main (int argc, char* argv[]) {
     }
 
     {
+        std::cout << "OBST Only" << std::endl;
+
         const clock_t obstOnlyBeginTime = std::clock();
         double obstOnlyResponse = testOBST(vertices, demandMatrix);
         double obstOnlySec = double(std::clock() - obstOnlyBeginTime) / CLOCKS_PER_SEC;
 
-        std::cout << "OBST Only Cost: " << obstOnlyResponse << std::endl;
-        std::cout << "OBST Only Time Spent: " << obstOnlySec << std::endl;
+        std::cout << "\tOBST Only Cost: " << obstOnlyResponse << std::endl;
+        std::cout << "\tOBST Only Time Spent: " << obstOnlySec << std::endl;
 
         std::ofstream obstOnlyCostsFile(
             baseFolderName + "obst-only_costs.out", std::ios_base::app
@@ -136,12 +142,14 @@ int main (int argc, char* argv[]) {
     }
 
     {
+        std::cout << "Greedy + Bissection" << std::endl;
+
         const clock_t greedyBissectionBeginTime = std::clock();
         double greedyBissectionResponse = testGreedy(orderedVertices, demandMatrix);
         double greedyBissectionSec = double(std::clock() - greedyBissectionBeginTime) / CLOCKS_PER_SEC;
 
-        std::cout << "Greedy + Bissection Cost: " << greedyBissectionResponse << std::endl;
-        std::cout << "Greedy + Bissection Time Spent: " << greedyBissectionSec << std::endl;
+        std::cout << "\tGreedy + Bissection Cost: " << greedyBissectionResponse << std::endl;
+        std::cout << "\tGreedy + Bissection Time Spent: " << greedyBissectionSec << std::endl;
 
         std::ofstream greedyBissectionCostsFile(
             baseFolderName + "greedy-bissection_costs.out", std::ios_base::app
@@ -155,12 +163,13 @@ int main (int argc, char* argv[]) {
     }
 
     {
+        std::cout << "Greedy Only" << std::endl;
         const clock_t greedyBeginTime = std::clock();
         double greedyResponse = testGreedy(vertices, demandMatrix);
         double greedySec = double(std::clock() - greedyBeginTime) / CLOCKS_PER_SEC;
 
-        std::cout << "Greedy Cost: " << greedyResponse << std::endl;
-        std::cout << "Greedy Time Spent: " << greedySec << std::endl;
+        std::cout << "\tGreedy Cost: " << greedyResponse << std::endl;
+        std::cout << "\tGreedy Time Spent: " << greedySec << std::endl;
 
         std::ofstream greedyCostsFile(
             baseFolderName + "greedy_costs.out", std::ios_base::app
