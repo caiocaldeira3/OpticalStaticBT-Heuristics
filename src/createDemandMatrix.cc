@@ -6,7 +6,8 @@
 #include <iostream>
 #include <algorithm>
 
-#include "argparse/argparse.hh"
+#include <argparse/argparse.hh>
+#include <bounds.hh>
 
 int main (int argc, char* argv[]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -102,17 +103,17 @@ int main (int argc, char* argv[]) {
     std::cout << "Destination Path: " << dstPath << std::endl;
     std::cout << "Number of Vertices: " << nVertices << std::endl;
     std::cout << "Source Size: " << srcSize << std::endl;
-    std::cout << "Destination Size: " << dstSize << std::endl;
     if (parser.is_used("--src-pct")) {
-        std::cout << "Source Percentage: " << srcPct << std::endl;
+        std::cout << "\tSource Percentage: " << srcPct << std::endl;
     }
+    std::cout << "Destination Size: " << dstSize << std::endl;
     if (parser.is_used("--dst-pct")) {
-        std::cout << "Destination Percentage: " << dstPct << std::endl;
+        std::cout << "\tDestination Percentage: " << dstPct << std::endl;
     }
     if (parser.is_used("-u")) {
         std::cout << "Uniform Flow Distribution selected" << std::endl;
     }
-    std::cout << "Source Flow Size: " << srcFlowSize << std::endl;
+    std::cout << "\tSource Flow Size: " << srcFlowSize << std::endl;
 
     std::ofstream matrixFile("weights/" + dstPath);
     matrixFile << nVertices << std::endl;
