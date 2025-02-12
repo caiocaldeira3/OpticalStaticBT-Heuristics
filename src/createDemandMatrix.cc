@@ -63,6 +63,10 @@ int main (int argc, char* argv[]) {
 
         }
 
+        if (dstSize == nVertices) {
+            dstSize--;
+        }
+
     } catch (const std::exception& err) {
         std::cerr << err.what() << std::endl;
         std::cerr << parser;
@@ -78,7 +82,6 @@ int main (int argc, char* argv[]) {
     }
 
     std::shuffle(srcShuffle.begin(), srcShuffle.end(), gen);
-    std::shuffle(dstShuffle.begin(), dstShuffle.end(), gen);
 
     std::set<int> srcVertices;
     std::set<int> dstVertices;
@@ -114,16 +117,19 @@ int main (int argc, char* argv[]) {
     std::ofstream matrixFile("weights/" + dstPath);
     matrixFile << nVertices << std::endl;
 
+    double flowSize = srcFlowSize / dstSize;
     for (int src: srcVertices) {
-        bool erased = dstVertices.erase(src);
-        double flowSize = srcFlowSize / dstVertices.size();
+        std::shuffle(dstShuffle.begin(), dstShuffle.end(), gen);
 
-        for (int dst: dstVertices) {
+        int dst;
+        int erased = 0;
+        for (int idx = 0; idx < dstSize + erased; idx++) {
+            if ((dst = dstShuffle[idx]) == src) {
+                erased = 1;
+                continue;
+            }
+
             matrixFile << src << " " << dst << " " << flowSize << std::endl;
-        }
-
-        if (erased) {
-            dstVertices.insert(src);
         }
     }
 }
