@@ -11,6 +11,7 @@
 #include <graphbissection.hh>
 #include <loggraphbissection.hh>
 #include <mlogagraphbissection.hh>
+#include <onehopgraphbissection.hh>
 
 int main (int argc, char* argv[]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -66,12 +67,13 @@ int main (int argc, char* argv[]) {
     namespace fs = std::filesystem;
     fs::create_directories(baseFolderName + "orderings/");
 
-    std::vector<int> vertices, orderedVertices, mlogaOrderedVertices, logGapOrderedVertices;
+    std::vector<int> vertices, orderedVertices, mlogaOrderedVertices, logGapOrderedVertices, oneHopOrderedVertices;
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         vertices.push_back(vIdx);
         orderedVertices.push_back(vIdx);
         mlogaOrderedVertices.push_back(vIdx);
         logGapOrderedVertices.push_back(vIdx);
+        oneHopOrderedVertices.push_back(vIdx);
     }
 
     if (false) {
@@ -124,6 +126,24 @@ int main (int argc, char* argv[]) {
         );
         for (int vIdx = 0; vIdx < nVertices; vIdx++) {
             orderingFile << logGapOrderedVertices[vIdx] << " ";
+        }
+        orderingFile << std::endl;
+    }
+
+    if (false) {
+        VectorLimits_t vectorLimits = { 0, nVertices };
+        int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
+
+        const clock_t orderBeginTime = std::clock();
+        onehop::graphReordering(demandMatrix, oneHopOrderedVertices, vectorLimits, maxDepth, parallelize, nVertices);
+        double orderEndTime = double(std::clock() - orderBeginTime) / CLOCKS_PER_SEC;
+        std::cout << "One Hop Ordering Time Spent: " << orderEndTime << std::endl;
+
+        std::ofstream orderingFile(
+            baseFolderName + "orderings/one_hop_ordering_" + std::to_string(testNumber) + ".out"
+        );
+        for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+            orderingFile << oneHopOrderedVertices[vIdx] << " ";
         }
         orderingFile << std::endl;
     }
@@ -191,6 +211,27 @@ int main (int argc, char* argv[]) {
         rawTimeSpent << rawSec << std::endl;
     }
 
+    if (true) {
+        std::cout << "Raw One Hop Bissection" << std::endl;
+
+        const clock_t rawBeginTime = std::clock();
+        double rawBissecResponse = testGraphOrder(oneHopOrderedVertices, demandMatrix);
+        double rawSec = double(std::clock() - rawBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "\tRaw One Hop Bissection Cost: " << rawBissecResponse << std::endl;
+        std::cout << "\tRaw One Hop Time Spent: " << rawSec << std::endl;
+
+        std::ofstream rawCostsFile(
+            baseFolderName + "one_hop_raw_costs.out", std::ios_base::app
+        );
+        rawCostsFile << rawBissecResponse << std::endl;
+
+        std::ofstream rawTimeSpent(
+            baseFolderName + "one_hop_raw_time_spent.out", std::ios_base::app
+        );
+        rawTimeSpent << rawSec << std::endl;
+    }
+
     if (false) {
         std::cout << "OBST Bissection" << std::endl;
 
@@ -254,7 +295,28 @@ int main (int argc, char* argv[]) {
         obstTimeSpent << obstSec << std::endl;
     }
 
-    if (false) {
+    if (true) {
+        std::cout << "OBST One Hop Bissection" << std::endl;
+
+        const clock_t obstBeginTime = std::clock();
+        double obstBissecResponse = testOBST(oneHopOrderedVertices, demandMatrix);
+        double obstSec = double(std::clock() - obstBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "\tOBST One Hop Bissection Cost: " << obstBissecResponse << std::endl;
+        std::cout << "\tOBST One Hop Time Spent: " << obstSec << std::endl;
+
+        std::ofstream obstCostsFile(
+            baseFolderName + "obst-one-hop_costs.out", std::ios_base::app
+        );
+        obstCostsFile << obstBissecResponse << std::endl;
+
+        std::ofstream obstTimeSpent(
+            baseFolderName + "obst-one-hop_time_spent.out", std::ios_base::app
+        );
+        obstTimeSpent << obstSec << std::endl;
+    }
+
+    {
         std::cout << "OBST Only" << std::endl;
 
         const clock_t obstOnlyBeginTime = std::clock();
@@ -336,6 +398,27 @@ int main (int argc, char* argv[]) {
             baseFolderName + "greedy-log-gap-bissection_time_spent.out", std::ios_base::app
         );
         greedyBissectionTimeSpent << greedyBissectionSec << std::endl;
+    }
+
+    if (true) {
+        std::cout << "Greedy + One Hop Bissection" << std::endl;
+
+        const clock_t greedyBeginTime = std::clock();
+        double greedyResponse = testGreedy(oneHopOrderedVertices, demandMatrix);
+        double greedySec = double(std::clock() - greedyBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "\tGreedy + One Hop Bissection Cost: " << greedyResponse << std::endl;
+        std::cout << "\tGreedy + One Hop Time Spent: " << greedySec << std::endl;
+
+        std::ofstream greedyCostsFile(
+            baseFolderName + "greedy-one-hop_costs.out", std::ios_base::app
+        );
+        greedyCostsFile << greedyResponse << std::endl;
+
+        std::ofstream greedyTimeSpent(
+            baseFolderName + "greedy-one-hop_time_spent.out", std::ios_base::app
+        );
+        greedyTimeSpent << greedySec << std::endl;
     }
 
     {
