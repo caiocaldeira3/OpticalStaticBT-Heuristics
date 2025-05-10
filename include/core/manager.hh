@@ -1,8 +1,8 @@
 #pragma once
 
 #include <core/util.hh>
-#include <optbst.hh>
-#include <greedy.hh>
+#include <treebuilders/optbst.hh>
+#include <treebuilders/greedy.hh>
 #include <graphbissection.hh>
 
 
