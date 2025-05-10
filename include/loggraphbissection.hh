@@ -134,14 +134,6 @@ namespace loggap {
             std::sort(leftGains.begin(), leftGains.end(), compareCostGainDecreasing);
             std::sort(rightGains.begin(), rightGains.end(), compareCostGainDecreasing);
 
-            // CostGain_t leftGain = leftGains[0];
-            // CostGain_t rightGain = rightGains[0];
-
-            // if (leftGain.costGain + rightGain.costGain <= 0)
-            //     break;
-
-            // std::swap(vertices[leftGain.vIdx], vertices[rightGain.vIdx]);
-
             for (int gainIdx = 0; gainIdx < std::min(leftGains.size(), rightGains.size()); gainIdx++) {
                 CostGain_t leftGain = leftGains[gainIdx];
                 CostGain_t rightGain = rightGains[gainIdx];
