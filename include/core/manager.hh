@@ -9,7 +9,9 @@ struct Response_t {
     std::vector<int> graphOrdering;
 };
 
-double testGraphOrder (const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix) {
+double testGraphOrder (
+    const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix
+) {
     int nVertices = vertices.size();
 
     std::vector<std::vector<int>> tree(nVertices, std::vector<int>());
@@ -29,9 +31,79 @@ double testOBST (
 }
 
 double testGreedy (
-    const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix, bool bounded = false
+    const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix
 ) {
     std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
 
     return greedyConstructor(vertices.size(), reorderedDemand);
+}
+
+template<typename Func>
+void runTreeBuilder (
+    const std::string& flag, const std::string& label,
+    const std::string& treeBuilder,
+    Func treeBuilderFn, std::vector<int>& vertices,
+    const std::vector<std::vector<double>>& demandMatrix,
+    bool bounded, bool parallelize, int nVertices,
+    const std::string& baseFolder, int testNumber
+) {
+    std::cout << treeBuilder + " " + label + " Bissection" << std::endl;
+    const clock_t beginTime = std::clock();
+    double response = treeBuilderFn(vertices, demandMatrix);
+    double timeSpent = double(std::clock() - beginTime) / CLOCKS_PER_SEC;
+
+    std::cout << "\tBissection Cost: " << response << std::endl;
+    std::cout << "\tTime Spent: " << timeSpent << std::endl;
+
+    std::ofstream oneHopCostsFile(
+        baseFolder + treeBuilder + "-" + flag + "-bissection_costs.out",
+        std::ios_base::app
+    );
+    oneHopCostsFile << response << std::endl;
+
+    std::ofstream oneHopTimeSpent(
+        baseFolder + treeBuilder + "-" + flag + "-bissection_time_spent.out",
+        std::ios_base::app
+    );
+    oneHopTimeSpent << timeSpent << std::endl;
+}
+
+struct Ordering_t {
+    std::string flag, label;
+    std::function<void(
+        const std::vector<std::vector<double>>&,
+        std::vector<int>&,
+        VectorLimits_t,int,bool,int
+    )> func;
+    std::vector<int> vertices;
+};
+
+inline constexpr auto noop = [](auto&&...) {};
+
+template<typename Func>
+void runOrdering (
+    const std::string& flag, const std::string& label,
+    Func reorderFn, std::vector<int>& orderVec,
+    const std::vector<std::vector<double>>& demandMatrix,
+    bool bounded, bool parallelize, int nVertices,
+    const std::string& baseFolder, int testNumber
+) {
+    std::cout << label << std::endl;
+    VectorLimits_t limits{0, nVertices};
+    int maxDepth = (bounded ?
+        static_cast<int>(std::ceil(std::log(nVertices)/std::log(2))) + 1: INF
+    );
+    const clock_t beginTime = std::clock();
+    reorderFn(demandMatrix, orderVec, limits, maxDepth, parallelize, nVertices);
+    double secs = double(std::clock() - beginTime) / CLOCKS_PER_SEC;
+    std::cout << "\tTime Spent: " << secs << std::endl;
+
+    // write the ordering itself
+    std::ofstream orderingFile(
+        baseFolder + "orderings/" + flag + "_ordering_" + std::to_string(testNumber) + ".out"
+    );
+    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+        orderingFile << orderVec[vIdx] << " ";
+    }
+    orderingFile << std::endl;
 }
