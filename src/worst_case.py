@@ -1,3 +1,5 @@
+import sys
+
 def generate_edges(n):
     edges = set()
 
@@ -11,12 +13,12 @@ def generate_edges(n):
 
     return edges
 
-n = 8
+n = int(sys.argv[1])
 edges = generate_edges(n)
 
-filename = "worst_case.txt"
+filename = f"{n}-worst-case"
 
-with open(filename, "w") as file:
+with open(f"weights/{filename}", "w") as file:
     file.write(f"{n}\n")
     for edge in sorted(edges):
         file.write(f"{edge[0]} {edge[1]} {1}\n")
