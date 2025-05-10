@@ -9,7 +9,7 @@
 #include <util.hh>
 
 
-namespace basic {
+namespace mloga {
 
 struct CostGain_t {
     double costGain;
@@ -20,35 +20,36 @@ bool compareCostGainDecreasing (const CostGain_t& a, const CostGain_t& b) {
     return a.costGain > b.costGain;
 }
 
-double computeCostGainBasic (
-    int leftVertex, int rightVertex,
+double computeCostGain (
+    int leftIdx, int rightIdx,
     const std::vector<std::vector<double>>& demandMatrix,
     const std::vector<int>& vertices,
     const VectorLimits_t& leftLimits, const VectorLimits_t& rightLimits
 ) {
+    int leftVertex = vertices[leftIdx];
+    int rightVertex = vertices[rightIdx];
     double costGain = 0;
 
     for (int idx = leftLimits.leftLimit; idx < leftLimits.rightLimit; idx++) {
         int othLeft = vertices[idx];
-        if (othLeft == leftVertex || othLeft == rightVertex)
-            continue;
+        double leftWeight = demandMatrix[leftVertex][othLeft] + demandMatrix[othLeft][leftVertex];
+        double rightWeight = demandMatrix[rightVertex][othLeft] + demandMatrix[othLeft][rightVertex];
 
-        costGain -= demandMatrix[leftVertex][othLeft];
-        costGain -= demandMatrix[othLeft][leftVertex];
-        costGain += demandMatrix[rightVertex][othLeft];
-        costGain += demandMatrix[othLeft][rightVertex];
-
+        if (othLeft != leftVertex) {
+            costGain += log2(abs(rightVertex - othLeft)) * leftWeight - log2(abs(leftVertex - othLeft)) * leftWeight;
+            costGain += -log2(abs(rightVertex - othLeft)) * rightWeight + log2(abs(leftVertex - othLeft)) * rightWeight;
+        }
     }
 
     for (int idx = rightLimits.leftLimit; idx < rightLimits.rightLimit; idx++) {
         int othRight = vertices[idx];
-        if (othRight == leftVertex || othRight == rightVertex)
-            continue;
+        double leftWeight = demandMatrix[leftVertex][othRight] + demandMatrix[othRight][leftVertex];
+        double rightWeight = demandMatrix[rightVertex][othRight] + demandMatrix[othRight][rightVertex];
 
-        costGain -= demandMatrix[rightVertex][othRight];
-        costGain -= demandMatrix[othRight][rightVertex];
-        costGain += demandMatrix[leftVertex][othRight];
-        costGain += demandMatrix[othRight][leftVertex];
+        if (othRight != rightVertex) {
+            costGain += -log2(abs(leftVertex - othRight)) * leftWeight + log2(abs(rightVertex - othRight)) * leftWeight;
+            costGain += log2(abs(leftVertex - othRight)) * rightWeight - log2(abs(rightVertex - othRight)) * rightWeight;
+        }
     }
 
     return costGain;
@@ -72,10 +73,8 @@ void graphReordering (
         // #pragma omp parallel for collapse(2) shared(costGains) schedule(dynamic)
         for (int leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
             for (int rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
-                int leftVertex = vertices[leftIdx];
-                int rightVertex = vertices[rightIdx];
-                double costGain = computeCostGainBasic(
-                    leftVertex, rightVertex, demandMatrix, vertices, leftLimits, rightLimits
+                double costGain = computeCostGain(
+                    leftIdx, rightIdx, demandMatrix, vertices, leftLimits, rightLimits
                 );
 
                 #pragma omp critical
@@ -87,9 +86,8 @@ void graphReordering (
 
         std::sort(costGains.begin(), costGains.end(), compareCostGainDecreasing);
         CostGain_t bestCostGain = costGains[0];
-        if (bestCostGain.costGain <= 0)
+        if (bestCostGain.costGain < 0)
             break;
-
         std::swap(vertices[bestCostGain.vertices.first], vertices[bestCostGain.vertices.second]);
     }
 
@@ -104,8 +102,8 @@ void graphReordering (
         }
 
     } else {
-        graphReordering(demandMatrix, vertices, leftLimits, maxDepth - 1, parallelize, leftLimits.rightLimit - leftLimits.leftLimit);
-        graphReordering(demandMatrix, vertices, rightLimits, maxDepth - 1, parallelize, rightLimits.rightLimit - rightLimits.leftLimit);
+        graphReordering(demandMatrix, vertices, leftLimits, maxDepth - 1, parallelize, maxIterations);
+        graphReordering(demandMatrix, vertices, rightLimits, maxDepth - 1, parallelize, maxIterations);
 
     }
 }

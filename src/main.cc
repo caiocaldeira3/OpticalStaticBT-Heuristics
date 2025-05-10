@@ -8,6 +8,9 @@
 
 #include <argparse/argparse.hh>
 #include <manager.hh>
+#include <graphbissection.hh>
+#include <loggraphbissection.hh>
+#include <mlogagraphbissection.hh>
 
 int main (int argc, char* argv[]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -63,23 +66,25 @@ int main (int argc, char* argv[]) {
     namespace fs = std::filesystem;
     fs::create_directories(baseFolderName + "orderings/");
 
-    std::vector<int> vertices, orderedVertices;
+    std::vector<int> vertices, orderedVertices, mlogaOrderedVertices, logGapOrderedVertices;
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         vertices.push_back(vIdx);
         orderedVertices.push_back(vIdx);
+        mlogaOrderedVertices.push_back(vIdx);
+        logGapOrderedVertices.push_back(vIdx);
     }
 
-    {
+    if (false) {
         VectorLimits_t vectorLimits = { 0, nVertices };
         int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
 
         const clock_t orderBeginTime = std::clock();
-        graphReordering(demandMatrix, orderedVertices, vectorLimits, maxDepth, parallelize);
+        basic::graphReordering(demandMatrix, orderedVertices, vectorLimits, maxDepth, parallelize, nVertices);
         double orderEndTime = double(std::clock() - orderBeginTime) / CLOCKS_PER_SEC;
-        std::cout << "Ordering Time Spent: " << orderEndTime << std::endl;
+        std::cout << "Basic Ordering Time Spent: " << orderEndTime << std::endl;
 
         std::ofstream orderingFile(
-            baseFolderName + "orderings/ordering_" + std::to_string(testNumber) + ".out"
+            baseFolderName + "orderings/basic_ordering_" + std::to_string(testNumber) + ".out"
         );
         for (int vIdx = 0; vIdx < nVertices; vIdx++) {
             orderingFile << orderedVertices[vIdx] << " ";
@@ -87,7 +92,43 @@ int main (int argc, char* argv[]) {
         orderingFile << std::endl;
     }
 
-    {
+    if (false) {
+        VectorLimits_t vectorLimits = { 0, nVertices };
+        int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
+
+        const clock_t orderBeginTime = std::clock();
+        mloga::graphReordering(demandMatrix, mlogaOrderedVertices, vectorLimits, maxDepth, parallelize, nVertices);
+        double orderEndTime = double(std::clock() - orderBeginTime) / CLOCKS_PER_SEC;
+        std::cout << "LogGap Ordering Time Spent: " << orderEndTime << std::endl;
+
+        std::ofstream orderingFile(
+            baseFolderName + "orderings/mloga_ordering_" + std::to_string(testNumber) + ".out"
+        );
+        for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+            orderingFile << mlogaOrderedVertices[vIdx] << " ";
+        }
+        orderingFile << std::endl;
+    }
+
+    if (false) {
+        VectorLimits_t vectorLimits = { 0, nVertices };
+        int maxDepth = (bounded ? ceil(log(nVertices) / log(2)) + 1 : INF);
+
+        const clock_t orderBeginTime = std::clock();
+        loggap::graphReordering(demandMatrix, logGapOrderedVertices, vectorLimits, maxDepth, parallelize, nVertices);
+        double orderEndTime = double(std::clock() - orderBeginTime) / CLOCKS_PER_SEC;
+        std::cout << "LogGap Ordering Time Spent: " << orderEndTime << std::endl;
+
+        std::ofstream orderingFile(
+            baseFolderName + "orderings/log_gap_ordering_" + std::to_string(testNumber) + ".out"
+        );
+        for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+            orderingFile << logGapOrderedVertices[vIdx] << " ";
+        }
+        orderingFile << std::endl;
+    }
+
+    if (false){
         std::cout << "Raw Bissection" << std::endl;
 
         const clock_t rawBeginTime = std::clock();
@@ -98,17 +139,59 @@ int main (int argc, char* argv[]) {
         std::cout << "\tRaw Time Spent: " << rawSec << std::endl;
 
         std::ofstream rawCostsFile(
-            baseFolderName + "raw_costs.out", std::ios_base::app
+            baseFolderName + "balanced-tree-on-bissection_costs.out", std::ios_base::app
         );
         rawCostsFile << rawBissecResponse << std::endl;
 
         std::ofstream rawTimeSpent(
-            baseFolderName + "raw_time_spent.out", std::ios_base::app
+            baseFolderName + "balanced-tree-on-bissection_spent.out", std::ios_base::app
         );
         rawTimeSpent << rawSec << std::endl;
     }
 
-    {
+    if (false) {
+        std::cout << "MLogA Raw Bissection" << std::endl;
+
+        const clock_t rawBeginTime = std::clock();
+        double rawBissecResponse = testGraphOrder(mlogaOrderedVertices, demandMatrix);
+        double rawSec = double(std::clock() - rawBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "\tRaw MLogA Bissection Cost: " << rawBissecResponse << std::endl;
+        std::cout << "\tRaw MLogA Time Spent: " << rawSec << std::endl;
+
+        std::ofstream rawCostsFile(
+            baseFolderName + "mloga_raw_costs.out", std::ios_base::app
+        );
+        rawCostsFile << rawBissecResponse << std::endl;
+
+        std::ofstream rawTimeSpent(
+            baseFolderName + "mloga_raw_time_spent.out", std::ios_base::app
+        );
+        rawTimeSpent << rawSec << std::endl;
+    }
+
+    if (false) {
+        std::cout << "LogGap Raw Bissection" << std::endl;
+
+        const clock_t rawBeginTime = std::clock();
+        double rawBissecResponse = testGraphOrder(logGapOrderedVertices, demandMatrix);
+        double rawSec = double(std::clock() - rawBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "\tRaw Log Gap Bissection Cost: " << rawBissecResponse << std::endl;
+        std::cout << "\tRaw Log Gap Time Spent: " << rawSec << std::endl;
+
+        std::ofstream rawCostsFile(
+            baseFolderName + "log_gap_raw_costs.out", std::ios_base::app
+        );
+        rawCostsFile << rawBissecResponse << std::endl;
+
+        std::ofstream rawTimeSpent(
+            baseFolderName + "log_gap_raw_time_spent.out", std::ios_base::app
+        );
+        rawTimeSpent << rawSec << std::endl;
+    }
+
+    if (false) {
         std::cout << "OBST Bissection" << std::endl;
 
         const clock_t obstBeginTime = std::clock();
@@ -129,7 +212,49 @@ int main (int argc, char* argv[]) {
         obstTimeSpent << obstSec << std::endl;
     }
 
-    {
+    if (false) {
+        std::cout << "OBST LogGap Bissection" << std::endl;
+
+        const clock_t obstBeginTime = std::clock();
+        double obstBissecResponse = testOBST(mlogaOrderedVertices, demandMatrix);
+        double obstSec = double(std::clock() - obstBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "\tOBST LogGap Bissection Cost: " << obstBissecResponse << std::endl;
+        std::cout << "\tOBST LogGap Time Spent: " << obstSec << std::endl;
+
+        std::ofstream obstCostsFile(
+            baseFolderName + "obst-log-gap-bissection_costs.out", std::ios_base::app
+        );
+        obstCostsFile << obstBissecResponse << std::endl;
+
+        std::ofstream obstTimeSpent(
+            baseFolderName + "obst-log-gap-bissection_time_spent.out", std::ios_base::app
+        );
+        obstTimeSpent << obstSec << std::endl;
+    }
+
+    if (false) {
+        std::cout << "OBST LogGap Bissection" << std::endl;
+
+        const clock_t obstBeginTime = std::clock();
+        double obstBissecResponse = testOBST(logGapOrderedVertices, demandMatrix);
+        double obstSec = double(std::clock() - obstBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "\tOBST LogGap Bissection Cost: " << obstBissecResponse << std::endl;
+        std::cout << "\tOBST LogGap Time Spent: " << obstSec << std::endl;
+
+        std::ofstream obstCostsFile(
+            baseFolderName + "obst-log-gap-bissection_costs.out", std::ios_base::app
+        );
+        obstCostsFile << obstBissecResponse << std::endl;
+
+        std::ofstream obstTimeSpent(
+            baseFolderName + "obst-log-gap-bissection_time_spent.out", std::ios_base::app
+        );
+        obstTimeSpent << obstSec << std::endl;
+    }
+
+    if (false) {
         std::cout << "OBST Only" << std::endl;
 
         const clock_t obstOnlyBeginTime = std::clock();
@@ -150,7 +275,7 @@ int main (int argc, char* argv[]) {
         obstOnlyTimeSpent << obstOnlySec << std::endl;
     }
 
-    {
+    if (false) {
         std::cout << "Greedy + Bissection" << std::endl;
 
         const clock_t greedyBissectionBeginTime = std::clock();
@@ -167,6 +292,48 @@ int main (int argc, char* argv[]) {
 
         std::ofstream greedyBissectionTimeSpent(
             baseFolderName + "greedy-bissection_time_spent.out", std::ios_base::app
+        );
+        greedyBissectionTimeSpent << greedyBissectionSec << std::endl;
+    }
+
+    if (false) {
+        std::cout << "Greedy + MLogA Bissection" << std::endl;
+
+        const clock_t greedyBissectionBeginTime = std::clock();
+        double greedyBissectionResponse = testGreedy(mlogaOrderedVertices, demandMatrix);
+        double greedyBissectionSec = double(std::clock() - greedyBissectionBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "\tGreedy + MLogA Bissection Cost: " << greedyBissectionResponse << std::endl;
+        std::cout << "\tGreedy + MLogA Bissection Time Spent: " << greedyBissectionSec << std::endl;
+
+        std::ofstream greedyBissectionCostsFile(
+            baseFolderName + "greedy-log-gap-bissection_costs.out", std::ios_base::app
+        );
+        greedyBissectionCostsFile << greedyBissectionResponse << std::endl;
+
+        std::ofstream greedyBissectionTimeSpent(
+            baseFolderName + "greedy-log-gap-bissection_time_spent.out", std::ios_base::app
+        );
+        greedyBissectionTimeSpent << greedyBissectionSec << std::endl;
+    }
+
+    if (false) {
+        std::cout << "Greedy + LogGap Bissection" << std::endl;
+
+        const clock_t greedyBissectionBeginTime = std::clock();
+        double greedyBissectionResponse = testGreedy(logGapOrderedVertices, demandMatrix);
+        double greedyBissectionSec = double(std::clock() - greedyBissectionBeginTime) / CLOCKS_PER_SEC;
+
+        std::cout << "\tGreedy + LogGap Bissection Cost: " << greedyBissectionResponse << std::endl;
+        std::cout << "\tGreedy + LogGap Bissection Time Spent: " << greedyBissectionSec << std::endl;
+
+        std::ofstream greedyBissectionCostsFile(
+            baseFolderName + "greedy-log-gap-bissection_costs.out", std::ios_base::app
+        );
+        greedyBissectionCostsFile << greedyBissectionResponse << std::endl;
+
+        std::ofstream greedyBissectionTimeSpent(
+            baseFolderName + "greedy-log-gap-bissection_time_spent.out", std::ios_base::app
         );
         greedyBissectionTimeSpent << greedyBissectionSec << std::endl;
     }
