@@ -3,8 +3,6 @@
 #include <core/util.hh>
 #include <treebuilders/optbst.hh>
 #include <treebuilders/greedy.hh>
-#include <graphbissection.hh>
-
 
 struct Response_t {
     double cost;
