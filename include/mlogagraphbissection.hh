@@ -6,7 +6,7 @@
 #include <vector>
 #include <algorithm>
 
-#include <util.hh>
+#include <core/util.hh>
 
 
 namespace mloga {

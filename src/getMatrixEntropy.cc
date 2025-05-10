@@ -4,7 +4,8 @@
 #include <chrono>
 
 #include <argparse/argparse.hh>
-#include <bounds.hh>
+#include <core/util.hh>
+#include <core/bounds.hh>
 
 int main (int argc, char* argv[]) {
     argparse::ArgumentParser parser("entropy_args");
@@ -13,6 +14,12 @@ int main (int argc, char* argv[]) {
     parser.add_argument("input-name")
         .store_into(inputName)
         .help("the name of the input in weights folder");
+
+    bool storeEntropy;
+    parser.add_argument("-s")
+        .default_value(false)
+        .store_into(storeEntropy)
+        .help("if the entropy should be stored");
 
     try {
         parser.parse_args(argc, argv);
@@ -53,5 +60,10 @@ int main (int argc, char* argv[]) {
         conditionalEntropy.entropyXgivenY - conditionalEntropy.entropyYgivenX
     );
     std::cout << "Mutual Information (X; Y): " << mutualInformation << std::endl;
+
+    if (storeEntropy) {
+
+
+    }
 
 }

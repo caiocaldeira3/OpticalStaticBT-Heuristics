@@ -1,8 +1,6 @@
 #pragma once
 
-#include <util.hh>
 #include <assert.h>
-
 
 struct IntervalRoot_t{
     double cost;

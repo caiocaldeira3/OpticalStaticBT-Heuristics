@@ -7,7 +7,7 @@
 #include <algorithm>
 
 #include <argparse/argparse.hh>
-#include <bounds.hh>
+#include <core/bounds.hh>
 
 int main (int argc, char* argv[]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();

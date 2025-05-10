@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <util.hh>
 
 
 struct ConditionalEntropy_T {

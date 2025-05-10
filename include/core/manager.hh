@@ -1,6 +1,6 @@
 #pragma once
 
-#include <util.hh>
+#include <core/util.hh>
 #include <optbst.hh>
 #include <greedy.hh>
 #include <graphbissection.hh>

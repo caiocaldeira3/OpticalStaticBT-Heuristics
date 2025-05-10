@@ -7,7 +7,7 @@
 #include <chrono>
 
 #include <argparse/argparse.hh>
-#include <manager.hh>
+#include <core/manager.hh>
 #include <graphbissection.hh>
 #include <loggraphbissection.hh>
 #include <mlogagraphbissection.hh>
@@ -41,6 +41,13 @@ int main (int argc, char* argv[]) {
         .default_value(0)
         .store_into(testNumber)
         .help("the test number");
+
+    // Add command-line arguments for each algorithm
+    std::string enabledAlgorithms;
+    parser.add_argument("--algorithms")
+        .default_value(std::string(""))
+        .store_into(enabledAlgorithms)
+        .help("Comma-separated list of algorithms to run (e.g., raw,mloga,loggap,onehop)");
 
     try {
         parser.parse_args(argc, argv);
@@ -148,9 +155,19 @@ int main (int argc, char* argv[]) {
         orderingFile << std::endl;
     }
 
-    if (false){
-        std::cout << "Raw Bissection" << std::endl;
+    // Parse the algorithms to run
+    std::set<std::string> algorithmsToRun;
+    if (!enabledAlgorithms.empty()) {
+        std::stringstream ss(enabledAlgorithms);
+        std::string algorithm;
+        while (std::getline(ss, algorithm, ',')) {
+            algorithmsToRun.insert(algorithm);
+        }
+    }
 
+    // Replace the manual conditionals with checks for enabled algorithms
+    if (algorithmsToRun.count("raw")) {
+        std::cout << "Raw Bissection" << std::endl;
         const clock_t rawBeginTime = std::clock();
         double rawBissecResponse = testGraphOrder(orderedVertices, demandMatrix);
         double rawSec = double(std::clock() - rawBeginTime) / CLOCKS_PER_SEC;
@@ -169,9 +186,8 @@ int main (int argc, char* argv[]) {
         rawTimeSpent << rawSec << std::endl;
     }
 
-    if (false) {
+    if (algorithmsToRun.count("mloga")) {
         std::cout << "MLogA Raw Bissection" << std::endl;
-
         const clock_t rawBeginTime = std::clock();
         double rawBissecResponse = testGraphOrder(mlogaOrderedVertices, demandMatrix);
         double rawSec = double(std::clock() - rawBeginTime) / CLOCKS_PER_SEC;
@@ -190,9 +206,8 @@ int main (int argc, char* argv[]) {
         rawTimeSpent << rawSec << std::endl;
     }
 
-    if (false) {
+    if (algorithmsToRun.count("loggap")) {
         std::cout << "LogGap Raw Bissection" << std::endl;
-
         const clock_t rawBeginTime = std::clock();
         double rawBissecResponse = testGraphOrder(logGapOrderedVertices, demandMatrix);
         double rawSec = double(std::clock() - rawBeginTime) / CLOCKS_PER_SEC;
@@ -211,25 +226,24 @@ int main (int argc, char* argv[]) {
         rawTimeSpent << rawSec << std::endl;
     }
 
-    if (true) {
-        std::cout << "Raw One Hop Bissection" << std::endl;
+    if (algorithmsToRun.count("onehop")) {
+        std::cout << "OneHop Graph Bissection" << std::endl;
+        const clock_t oneHopBeginTime = std::clock();
+        double oneHopResponse = testGraphOrder(oneHopOrderedVertices, demandMatrix);
+        double oneHopSec = double(std::clock() - oneHopBeginTime) / CLOCKS_PER_SEC;
 
-        const clock_t rawBeginTime = std::clock();
-        double rawBissecResponse = testGraphOrder(oneHopOrderedVertices, demandMatrix);
-        double rawSec = double(std::clock() - rawBeginTime) / CLOCKS_PER_SEC;
+        std::cout << "\tOneHop Bissection Cost: " << oneHopResponse << std::endl;
+        std::cout << "\tOneHop Time Spent: " << oneHopSec << std::endl;
 
-        std::cout << "\tRaw One Hop Bissection Cost: " << rawBissecResponse << std::endl;
-        std::cout << "\tRaw One Hop Time Spent: " << rawSec << std::endl;
-
-        std::ofstream rawCostsFile(
-            baseFolderName + "one_hop_raw_costs.out", std::ios_base::app
+        std::ofstream oneHopCostsFile(
+            baseFolderName + "onehop-bissection_costs.out", std::ios_base::app
         );
-        rawCostsFile << rawBissecResponse << std::endl;
+        oneHopCostsFile << oneHopResponse << std::endl;
 
-        std::ofstream rawTimeSpent(
-            baseFolderName + "one_hop_raw_time_spent.out", std::ios_base::app
+        std::ofstream oneHopTimeSpent(
+            baseFolderName + "onehop-bissection_time_spent.out", std::ios_base::app
         );
-        rawTimeSpent << rawSec << std::endl;
+        oneHopTimeSpent << oneHopSec << std::endl;
     }
 
     if (false) {

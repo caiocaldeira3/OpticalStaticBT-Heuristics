@@ -1,12 +1,11 @@
 #pragma once
 
-
 #include <set>
 #include <memory>
 #include <vector>
 #include <algorithm>
 
-#include <util.hh>
+#include <core/util.hh>
 
 
 namespace onehop {
