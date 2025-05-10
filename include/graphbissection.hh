@@ -85,12 +85,17 @@ void graphReordering (
             }
         }
 
-        std::sort(costGains.begin(), costGains.end(), compareCostGainDecreasing);
-        CostGain_t bestCostGain = costGains[0];
-        if (bestCostGain.costGain <= 0)
+        int bestCostGainIdx = std::max_element(
+            costGains.begin(), costGains.end(), compareCostGainDecreasing
+        ) - costGains.begin();
+
+        if (costGains[bestCostGainIdx].costGain <= 0)
             break;
 
-        std::swap(vertices[bestCostGain.vertices.first], vertices[bestCostGain.vertices.second]);
+        int leftIdx = costGains[bestCostGainIdx].vertices.first;
+        int rightIdx = costGains[bestCostGainIdx].vertices.second;
+
+        std::swap(vertices[leftIdx], vertices[rightIdx]);
     }
 
     if (parallelize) {
