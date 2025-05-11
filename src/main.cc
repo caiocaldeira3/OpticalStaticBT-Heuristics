@@ -71,9 +71,7 @@ int main (int argc, char* argv[]) {
     }
 
     std::string baseFolderName = ("output/" + inputName + "/");
-
     namespace fs = std::filesystem;
-    fs::create_directories(baseFolderName + "orderings/");
 
     std::set<std::string> algorithmsToRun = { "noop" };
     if (!enabledAlgorithms.empty()) {
@@ -98,6 +96,10 @@ int main (int argc, char* argv[]) {
 
     for (auto& orderingAlg: allOrderAlgs) {
         if (algorithmsToRun.count(orderingAlg.flag)) {
+            fs::create_directories(baseFolderName + orderingAlg.flag + "/");
+            fs::create_directories(baseFolderName + orderingAlg.flag + "/orderings/");
+            fs::create_directories(baseFolderName + orderingAlg.flag + "/metrics/");
+
             runOrdering(
                 orderingAlg.flag, orderingAlg.label,
                 orderingAlg.func, orderingAlg.vertices,

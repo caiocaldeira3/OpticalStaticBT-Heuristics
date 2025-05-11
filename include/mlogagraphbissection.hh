@@ -57,18 +57,23 @@ double computeCostGain (
 
 void graphReordering (
     const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
-    const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, int maxIterations = 20
+    const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, OrderingLogger& logger,
+    int maxIterations = 20
 ) {
-    if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 1)
+    if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 2)
         return;
+
+    int numIterations = 0;
 
     int mid = (vectorLimits.leftLimit + vectorLimits.rightLimit) / 2;
     VectorLimits_t leftLimits = { vectorLimits.leftLimit, mid };
     VectorLimits_t rightLimits = { mid, vectorLimits.rightLimit };
 
-    for (int cIter = 0; cIter < maxIterations; cIter++) {
+    while (numIterations++ < maxIterations) {
+        int numSwapped = 0;
+        double totalCostGain = 0;
+
         std::vector<CostGain_t> costGains;
-        std::set<int> swappedVertices;
 
         // #pragma omp parallel for collapse(2) shared(costGains) schedule(dynamic)
         for (int leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
@@ -95,21 +100,34 @@ void graphReordering (
         int rightIdx = costGains[bestCostGainIdx].vertices.second;
 
         std::swap(vertices[leftIdx], vertices[rightIdx]);
+
+        logger.logSwappedPairs(1);
+        logger.logCostGain(costGains[bestCostGainIdx].costGain);
     }
 
+    logger.logNumIterations(numIterations);
+
     if (parallelize) {
+        throw std::runtime_error("Parallelization not implemented yet due to race condition on logger.");
+
         #pragma omp single nowait
         {
             for (const auto& limits : { leftLimits, rightLimits }) {
                 #pragma omp task
-                graphReordering(demandMatrix, vertices, limits, maxDepth - 1, parallelize, limits.rightLimit - limits.leftLimit);
+                graphReordering(demandMatrix, vertices, limits, maxDepth - 1, parallelize, logger, maxIterations);
             }
             #pragma omp taskwait
         }
 
     } else {
-        graphReordering(demandMatrix, vertices, leftLimits, maxDepth - 1, parallelize, maxIterations);
-        graphReordering(demandMatrix, vertices, rightLimits, maxDepth - 1, parallelize, maxIterations);
+        graphReordering(
+            demandMatrix, vertices, leftLimits, maxDepth - 1,
+            parallelize, logger, maxIterations
+        );
+        graphReordering(
+            demandMatrix, vertices, rightLimits, maxDepth - 1,
+            parallelize, logger, maxIterations
+        );
 
     }
 }

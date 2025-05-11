@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/util.hh>
+#include <core/logging.hh>
 #include <treebuilders/optbst.hh>
 #include <treebuilders/greedy.hh>
 
@@ -56,13 +57,13 @@ void runTreeBuilder (
     std::cout << "\tTime Spent: " << timeSpent << std::endl;
 
     std::ofstream oneHopCostsFile(
-        baseFolder + treeBuilder + "-" + flag + "-bissection_costs.out",
+        baseFolder + flag + "/" + treeBuilder + "_costs.out",
         std::ios_base::app
     );
     oneHopCostsFile << response << std::endl;
 
     std::ofstream oneHopTimeSpent(
-        baseFolder + treeBuilder + "-" + flag + "-bissection_time_spent.out",
+        baseFolder + flag + "/" + treeBuilder + "_time_spent.out",
         std::ios_base::app
     );
     oneHopTimeSpent << timeSpent << std::endl;
@@ -73,7 +74,7 @@ struct Ordering_t {
     std::function<void(
         const std::vector<std::vector<double>>&,
         std::vector<int>&,
-        VectorLimits_t,int,bool,int
+        VectorLimits_t,int,bool,OrderingLogger&,int
     )> func;
     std::vector<int> vertices;
 };
@@ -86,24 +87,35 @@ void runOrdering (
     Func reorderFn, std::vector<int>& orderVec,
     const std::vector<std::vector<double>>& demandMatrix,
     bool bounded, bool parallelize, int nVertices,
-    const std::string& baseFolder, int testNumber
+    const std::string& baseFolder, int testNumber, int maxIterations = 20
 ) {
+    OrderingLogger logger(maxIterations);
+
     std::cout << label << std::endl;
     VectorLimits_t limits{0, nVertices};
     int maxDepth = (bounded ?
         static_cast<int>(std::ceil(std::log(nVertices)/std::log(2))) + 1: INF
     );
     const clock_t beginTime = std::clock();
-    reorderFn(demandMatrix, orderVec, limits, maxDepth, parallelize, nVertices);
+    reorderFn(demandMatrix, orderVec, limits, maxDepth, parallelize, logger, maxIterations);
     double secs = double(std::clock() - beginTime) / CLOCKS_PER_SEC;
     std::cout << "\tTime Spent: " << secs << std::endl;
 
     // write the ordering itself
     std::ofstream orderingFile(
-        baseFolder + "orderings/" + flag + "_ordering_" + std::to_string(testNumber) + ".out"
+        baseFolder + flag + "/orderings/" + std::to_string(testNumber) + ".out"
     );
     for (int vIdx = 0; vIdx < nVertices; vIdx++) {
         orderingFile << orderVec[vIdx] << " ";
     }
     orderingFile << std::endl;
+
+    std::ofstream orderingMetricsFile(
+        baseFolder + flag + "/metrics/" + std::to_string(testNumber) + ".out"
+    );
+    orderingMetricsFile << "max-it-occ,avg-iterations,avg-swapped-pairs,avg-cost-gain" << std::endl;
+    orderingMetricsFile << logger.getNumberOfMaxIterationsOccurences() << ","
+        << logger.getAverageNumIterationsPerRecursion() << ","
+        << logger.getAverageSwappedPairsPerIteration() << ","
+        << logger.getAverageCostGainPerRecursion() << std::endl;
 }
