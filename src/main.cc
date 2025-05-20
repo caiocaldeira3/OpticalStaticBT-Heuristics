@@ -98,7 +98,6 @@ int main (int argc, char* argv[]) {
         if (algorithmsToRun.count(orderingAlg.flag)) {
             fs::create_directories(baseFolderName + orderingAlg.flag + "/");
             fs::create_directories(baseFolderName + orderingAlg.flag + "/orderings/");
-            fs::create_directories(baseFolderName + orderingAlg.flag + "/metrics/");
 
             runOrdering(
                 orderingAlg.flag, orderingAlg.label,

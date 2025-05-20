@@ -111,9 +111,12 @@ void runOrdering (
     orderingFile << std::endl;
 
     std::ofstream orderingMetricsFile(
-        baseFolder + flag + "/metrics/" + std::to_string(testNumber) + ".out"
+        baseFolder + flag + "/metrics.out", std::ios_base::app
     );
-    orderingMetricsFile << "max-it-occ,avg-iterations,avg-swapped-pairs,avg-cost-gain" << std::endl;
+    if (testNumber == 0) {
+        orderingMetricsFile << "max-it-occ,avg-iterations,avg-swapped-pairs,avg-cost-gain" << std::endl;
+    }
+
     orderingMetricsFile << logger.getNumberOfMaxIterationsOccurences() << ","
         << logger.getAverageNumIterationsPerRecursion() << ","
         << logger.getAverageSwappedPairsPerIteration() << ","
