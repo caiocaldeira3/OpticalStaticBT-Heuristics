@@ -5,9 +5,9 @@ import os
 
 output_path = "output"
 # define ordering flags and tree builders to match nested folder structure
-ordering_flags = ["noop", "onehop"]
+ordering_flags = ["noop", "onehop", "mloggap"]
 tree_builders = ["raw", "greedy", "obst"]
-inputs = ["256-worst-case", "200-40-40"]
+inputs = ["200-40-40"]
 # n_tests no longer used directly
 
 os.makedirs("plots/", exist_ok=True)

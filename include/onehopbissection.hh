@@ -1,15 +1,15 @@
 #pragma once
 
-
 #include <set>
 #include <memory>
 #include <vector>
 #include <algorithm>
 
 #include <core/util.hh>
+#include <core/logging.hh>
 
 
-namespace loggap {
+namespace onehop {
     struct CostGain_t {
         double costGain;
         int vIdx;
@@ -62,47 +62,25 @@ namespace loggap {
         const std::vector<int>& vertices,
         const VectorLimits_t& fromLimits, const VectorLimits_t& toLimits
     ) {
-        double costGain = 0;
+        double costGain;
         int vertex = vertices[vIdx];
         int nTo = toLimits.rightLimit - toLimits.leftLimit;
         int nFrom = fromLimits.rightLimit - fromLimits.leftLimit;
 
-        for (int fromIdx = fromLimits.leftLimit; fromIdx < fromLimits.rightLimit; fromIdx++) {
-            int fromVertex = vertices[fromIdx];
-            double v2from = demandMatrix[vertex][fromVertex] + demandMatrix[fromVertex][vertex];
-            if (fromVertex == vertex || isClose(v2from, 0))
-                continue;
+        NodeSectionInfo_t vInfo = computeVertexInfo(vIdx, demandMatrix, vertices, fromLimits, toLimits);
 
-            NodeSectionInfo_t fromInfo = computeVertexInfo(fromIdx, demandMatrix, vertices, fromLimits, toLimits);
+        costGain = (
+            vInfo.sameSumWeight * log2(nTo / (double) (vInfo.sameNeighbors + 1))
+            + vInfo.othSumWeight * log2(nFrom / (double) (vInfo.othNeighBors + 1))
+        );
 
-            costGain -= (
-                fromInfo.sameSumWeight * log2(nFrom / (double) (fromInfo.sameNeighbors + 1))
-                + fromInfo.othSumWeight * log2(nTo / (double) (fromInfo.othNeighBors + 1))
-            );
+        costGain += (
+            - (vInfo.sameSumWeight) * log2((nTo - 1) / (double) (vInfo.sameNeighbors + 1))
+            + (vInfo.othSumWeight) * log2((nFrom + 1) / (double) (vInfo.othNeighBors + 1))
+        );
 
-            costGain -= (
-                - (fromInfo.sameSumWeight - v2from) * log2(nFrom / (double) (fromInfo.sameNeighbors))
-                + (fromInfo.othSumWeight + v2from) * log2(nTo / (double) (fromInfo.othNeighBors + 2))
-            );
-        }
-
-        for (int toIdx = toLimits.leftLimit; toIdx < toLimits.rightLimit; toIdx++) {
-            int toVertex = vertices[toIdx];
-            double v2to = demandMatrix[vertex][toVertex] + demandMatrix[toVertex][vertex];
-            if (toVertex == vertex || isClose(v2to, 0))
-                continue;
-
-            NodeSectionInfo_t toInfo = computeVertexInfo(toIdx, demandMatrix, vertices, toLimits, fromLimits);
-
-            costGain += (
-                toInfo.sameSumWeight * log2(nTo / (double) (toInfo.sameNeighbors + 1))
-                + toInfo.othSumWeight * log2(nFrom / (double) (toInfo.othNeighBors + 1))
-            );
-
-            costGain += (
-                - (toInfo.sameSumWeight - v2to) * log2(nTo / (double) (toInfo.sameNeighbors))
-                + (toInfo.othSumWeight + v2to) * log2(nFrom / (double) (toInfo.othNeighBors + 2))
-            );
+        if (std::isnan(costGain) || std::isinf(costGain)) {
+            throw std::runtime_error("Cost gain is NaN or Inf.");
         }
 
         return {costGain, vIdx};
@@ -113,7 +91,7 @@ namespace loggap {
         const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, OrderingLogger& logger,
         int maxIterations = 20
     ) {
-        if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 2)
+        if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 3)
             return;
 
         int numIterations = 0;
@@ -124,7 +102,6 @@ namespace loggap {
         while (numIterations++ < maxIterations) {
             int numSwapped = 0;
             double totalCostGain = 0;
-
             std::vector<CostGain_t> leftGains, rightGains;
             std::set<int> swappedVertices;
 
@@ -143,26 +120,28 @@ namespace loggap {
                 CostGain_t leftGain = leftGains[gainIdx];
                 CostGain_t rightGain = rightGains[gainIdx];
 
-                if (swappedVertices.find(leftGain.vIdx) != swappedVertices.end() ||
-                    swappedVertices.find(leftGain.vIdx) != swappedVertices.end()) {
+                if (
+                    swappedVertices.find(leftGain.vIdx) != swappedVertices.end() ||
+                    swappedVertices.find(leftGain.vIdx) != swappedVertices.end()
+                ) {
                     continue;
                 } else if (leftGain.costGain + rightGain.costGain <= 0) {
                     break;
                 }
 
+                totalCostGain += leftGain.costGain + rightGain.costGain;
+                numSwapped++;
+
                 std::swap(vertices[leftGain.vIdx], vertices[rightGain.vIdx]);
                 swappedVertices.insert(leftGain.vIdx);
                 swappedVertices.insert(rightGain.vIdx);
-
-                totalCostGain += leftGain.costGain + rightGain.costGain;
-                numSwapped++;
             }
-
-            if (swappedVertices.size() == 0)
-                break;
 
             logger.logSwappedPairs(numSwapped);
             logger.logCostGain(totalCostGain);
+
+            if (swappedVertices.size() == 0)
+                break;
         }
 
         logger.logNumIterations(numIterations);
@@ -175,8 +154,8 @@ namespace loggap {
                 for (const auto& limits : { leftLimits, rightLimits }) {
                     #pragma omp task
                     graphReordering(
-                        demandMatrix, vertices, limits, maxDepth - 1,
-                        parallelize, logger, maxIterations
+                        demandMatrix, vertices, limits, maxDepth - 1, parallelize,
+                        logger, maxIterations
                     );
                 }
                 #pragma omp taskwait
@@ -189,7 +168,7 @@ namespace loggap {
             );
             graphReordering(
                 demandMatrix, vertices, rightLimits, maxDepth - 1,
-                parallelize, logger, maxIterations
+                parallelize,  logger, maxIterations
             );
         }
     }

@@ -2,7 +2,7 @@
 rem ************************************************************
 rem *  run_tests.bat
 rem *
-rem *  Usage: run_tests.bat -n 1000 -src-size 0.3 -dst-size 0.3 -ntests 10
+rem *  Usage: run_tests.bat -n 1000 -src-size 0.3 -dst-size 0.3 -ntests 10 -algorithms "onehop-mloggap-basic"
 rem *
 rem *  This script compiles two C++ files and then executes:
 rem *    .\bin\matrix.exe <identifier> -n <n> --src-size <src-size> --dst-size <dst-size> -u

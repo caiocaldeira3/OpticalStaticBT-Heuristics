@@ -10,9 +10,8 @@
 #include <argparse/argparse.hh>
 #include <core/manager.hh>
 #include <graphbissection.hh>
-#include <loggraphbissection.hh>
-#include <mlogagraphbissection.hh>
-#include <onehopgraphbissection.hh>
+#include <mloggapbissection.hh>
+#include <onehopbissection.hh>
 
 int main (int argc, char* argv[]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -48,7 +47,7 @@ int main (int argc, char* argv[]) {
     parser.add_argument("--algorithms")
         .default_value(std::string(""))
         .store_into(enabledAlgorithms)
-        .help("Comma-separated list of algorithms to run (e.g., basic,mloga,loggap,onehop)");
+        .help("Dot-separated list of algorithms to run (e.g., basic.mloggap.onehop)");
 
     try {
         parser.parse_args(argc, argv);
@@ -77,7 +76,7 @@ int main (int argc, char* argv[]) {
     if (!enabledAlgorithms.empty()) {
         std::stringstream ss(enabledAlgorithms);
         std::string algorithm;
-        while (std::getline(ss, algorithm, ',')) {
+        while (std::getline(ss, algorithm, '.')) {
             algorithmsToRun.insert(algorithm);
         }
     }
@@ -88,8 +87,7 @@ int main (int argc, char* argv[]) {
     std::vector<Ordering_t> allOrderAlgs = {
         { "noop",  "No Reordering", noop, vertices },
         { "basic",  "Basic Reordering", basic::graphReordering, vertices },
-        { "mloga",  "MLogA Reordering", mloga::graphReordering, vertices },
-        { "loggap", "LogGap Reordering", loggap::graphReordering, vertices },
+        { "mloggap", "MLogGapA Reordering", mloggapa::bipartiteGraphReordering, vertices },
         { "onehop", "OneHop Reordering", onehop::graphReordering, vertices },
         // …add more as needed…
     };

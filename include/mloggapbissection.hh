@@ -9,7 +9,7 @@
 #include <core/logging.hh>
 
 
-namespace onehop {
+namespace mloggapa {
     struct CostGain_t {
         double costGain;
         int vIdx;
@@ -36,7 +36,7 @@ namespace onehop {
 
         for (int othIdx = fromLimits.leftLimit; othIdx < fromLimits.rightLimit; othIdx++) {
             int othVertex = vertices[othIdx];
-            double weight = demandMatrix[vertex][othVertex] + demandMatrix[othVertex][vertex];
+            double weight = demandMatrix[vertex][othVertex];
             if (othVertex == vertex || isClose(weight, 0))
                 continue;
 
@@ -46,7 +46,7 @@ namespace onehop {
 
         for (int othIdx = toLimits.leftLimit; othIdx < toLimits.rightLimit; othIdx++) {
             int othVertex = vertices[othIdx];
-            double weight = demandMatrix[vertex][othVertex] + demandMatrix[othVertex][vertex];
+            double weight = demandMatrix[vertex][othVertex];
             if (othVertex == vertex || isClose(weight, 0))
                 continue;
 
@@ -59,25 +59,32 @@ namespace onehop {
 
     CostGain_t computeCostGain (
         int vIdx, const std::vector<std::vector<double>>& demandMatrix,
-        const std::vector<int>& vertices,
+        const std::vector<int>& vertices, const std::vector<NodeSectionInfo_t>& nodeSectionInfo,
         const VectorLimits_t& fromLimits, const VectorLimits_t& toLimits
     ) {
-        double costGain;
+        double costGain = 0;
+        int nVertices = vertices.size();
         int vertex = vertices[vIdx];
         int nTo = toLimits.rightLimit - toLimits.leftLimit;
         int nFrom = fromLimits.rightLimit - fromLimits.leftLimit;
 
-        NodeSectionInfo_t vInfo = computeVertexInfo(vIdx, demandMatrix, vertices, fromLimits, toLimits);
+        for (int tIdx = 0; tIdx < nVertices; tIdx++) {
+            if (demandMatrix[tIdx][vertex] == 0) {
+                continue;
+            }
 
-        costGain = (
-            vInfo.sameSumWeight * log2(nTo / (double) (vInfo.sameNeighbors + 1))
-            + vInfo.othSumWeight * log2(nFrom / (double) (vInfo.othNeighBors + 1))
-        );
+            NodeSectionInfo_t vInfo = nodeSectionInfo[tIdx];
 
-        costGain += (
-            - (vInfo.sameSumWeight) * log2((nTo - 1) / (double) (vInfo.sameNeighbors + 1))
-            + (vInfo.othSumWeight) * log2((nFrom + 1) / (double) (vInfo.othNeighBors + 1))
-        );
+            costGain += (
+                vInfo.sameSumWeight * log2(nTo / (double) (vInfo.sameNeighbors + 1))
+                + vInfo.othSumWeight * log2(nFrom / (double) (vInfo.othNeighBors + 1))
+            );
+
+            costGain += (
+                - (vInfo.sameSumWeight) * log2((nTo - 1) / (double) (vInfo.sameNeighbors + 1))
+                - (vInfo.othSumWeight) * log2((nFrom + 1) / (double) (vInfo.othNeighBors + 1))
+            );
+        }
 
         if (std::isnan(costGain) || std::isinf(costGain)) {
             throw std::runtime_error("Cost gain is NaN or Inf.");
@@ -86,7 +93,7 @@ namespace onehop {
         return {costGain, vIdx};
     }
 
-    void graphReordering (
+        void graphReordering (
         const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
         const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, OrderingLogger& logger,
         int maxIterations = 20
@@ -94,23 +101,37 @@ namespace onehop {
         if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 3)
             return;
 
+        int numVertices = vertices.size();
+        std::vector<NodeSectionInfo_t> partitionInfo(numVertices);
         int numIterations = 0;
         int mid = (vectorLimits.leftLimit + vectorLimits.rightLimit) / 2;
         VectorLimits_t leftLimits = { vectorLimits.leftLimit, mid };
         VectorLimits_t rightLimits = { mid, vectorLimits.rightLimit };
 
         while (numIterations++ < maxIterations) {
+            for (int tIdx = 0; tIdx < numVertices; tIdx++) {
+                partitionInfo[tIdx] = computeVertexInfo(
+                    tIdx, demandMatrix, vertices, leftLimits, rightLimits
+                );
+            }
+
             int numSwapped = 0;
             double totalCostGain = 0;
             std::vector<CostGain_t> leftGains, rightGains;
             std::set<int> swappedVertices;
 
             for (int leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
-                leftGains.push_back(computeCostGain(leftIdx, demandMatrix, vertices, leftLimits, rightLimits));
+                leftGains.push_back(computeCostGain(
+                    leftIdx, demandMatrix, vertices, partitionInfo,
+                    leftLimits, rightLimits
+                ));
             }
 
             for (int rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
-                rightGains.push_back(computeCostGain(rightIdx, demandMatrix, vertices, rightLimits, leftLimits));
+                rightGains.push_back(computeCostGain(
+                    rightIdx, demandMatrix, vertices, partitionInfo,
+                    rightLimits, leftLimits
+                ));
             }
 
             std::sort(leftGains.begin(), leftGains.end(), compareCostGainDecreasing);
@@ -120,11 +141,15 @@ namespace onehop {
                 CostGain_t leftGain = leftGains[gainIdx];
                 CostGain_t rightGain = rightGains[gainIdx];
 
-                if (swappedVertices.find(leftGain.vIdx) != swappedVertices.end() ||
-                swappedVertices.find(leftGain.vIdx) != swappedVertices.end()) {
+                if (
+                    swappedVertices.find(leftGain.vIdx) != swappedVertices.end() ||
+                    swappedVertices.find(leftGain.vIdx) != swappedVertices.end()
+                ) {
                     continue;
+
                 } else if (leftGain.costGain + rightGain.costGain <= 0) {
                     break;
+
                 }
 
                 totalCostGain += leftGain.costGain + rightGain.costGain;
@@ -139,7 +164,7 @@ namespace onehop {
             logger.logCostGain(totalCostGain);
 
             if (swappedVertices.size() == 0)
-            break;
+                break;
         }
 
         logger.logNumIterations(numIterations);
@@ -171,5 +196,22 @@ namespace onehop {
         }
     }
 
+    void bipartiteGraphReordering (
+        const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
+        const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, OrderingLogger& logger,
+        int maxIterations = 20
+    ) {
+        int nVertices = vertices.size();
+        std::vector<std::vector<double>> demandMatrixCopy(nVertices, std::vector<double>(nVertices, 0.0));
+        for (int i = 0; i < vertices.size(); i++) {
+            for (int j = 0; j < vertices.size(); j++) {
+                demandMatrixCopy[i][j] = (
+                    demandMatrix[vertices[i]][vertices[j]] + demandMatrix[vertices[j]][vertices[i]]
+                );
+            }
+        }
+
+        graphReordering(demandMatrixCopy, vertices, vectorLimits, maxDepth, parallelize, logger, maxIterations);
+    }
 }
 

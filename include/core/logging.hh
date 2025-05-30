@@ -1,8 +1,6 @@
 #pragma once
 
 
-#include <mutex>
-
 class OrderingLogger {
 public:
     OrderingLogger(int _maxIterations) : maxIterations(_maxIterations) {}
