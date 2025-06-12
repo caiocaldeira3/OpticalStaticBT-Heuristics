@@ -76,7 +76,7 @@ namespace onehop {
 
         costGain += (
             - (vInfo.sameSumWeight) * log2((nTo - 1) / (double) (vInfo.sameNeighbors + 1))
-            + (vInfo.othSumWeight) * log2((nFrom + 1) / (double) (vInfo.othNeighBors + 1))
+            - (vInfo.othSumWeight) * log2((nFrom + 1) / (double) (vInfo.othNeighBors + 1))
         );
 
         if (std::isnan(costGain) || std::isinf(costGain)) {

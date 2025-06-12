@@ -93,7 +93,7 @@ namespace mloggapa {
         return {costGain, vIdx};
     }
 
-        void graphReordering (
+    void graphReordering (
         const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
         const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, OrderingLogger& logger,
         int maxIterations = 20
