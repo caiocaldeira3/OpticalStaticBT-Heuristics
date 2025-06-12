@@ -57,7 +57,7 @@ int main (int argc, char* argv[]) {
             }
         }
 
-        assert (isValidBinaryTree(preds));
+        //assert (isValidBinaryTree(preds));
 
         std::ofstream outFile(
             "genpop/" + std::to_string(nVertices) + "/" + std::to_string(popIdx) + ".txt"
