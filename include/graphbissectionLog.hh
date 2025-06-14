@@ -13,6 +13,15 @@
 
 namespace basic {
 
+struct Gain {
+    double gain;
+    int vertexIdx;
+};
+
+bool compareCostGainDecreasing (const Gain& a, const Gain& b) {
+    return a.gain > b.gain;
+}
+
 double computeMoveGain(convertgraph::bipartiteGraph& graph, 
                         int vertex, 
                         std::vector<int>& D_a, 
@@ -50,10 +59,10 @@ double computeMoveGain(convertgraph::bipartiteGraph& graph,
     return gain;
 }
 
-double computeMoveGainW(convertgraph::bipartiteGraph& graph, 
-                        int vertex, 
-                        std::vector<int>& D_a, 
-                        std::vector<int>& D_b) {
+double computeMoveGainWeighted(convertgraph::bipartiteGraph& graph, 
+                                int vertex, 
+                                std::vector<int>& D_a, 
+                                std::vector<int>& D_b) {
     double gain = 0.0;
 
     // std::cout << "Computing move gain for vertex: " << vertex << std::endl;
@@ -86,11 +95,13 @@ double computeMoveGainW(convertgraph::bipartiteGraph& graph,
     return gain;
 }
 
+template<typename Func>
 std::vector<int> recursiveBisection(convertgraph::bipartiteGraph& graph, 
                                     std::vector<int>& vertices,
                                     int d,
                                     int maxDepth,
-                                    int maxIterations) {
+                                    int maxIterations,
+                                    Func computeGainFunc) {
 
     // std::cout << "Recursive bisection at depth: " << d << ", vertices size: " << vertices.size() << std::endl;                                    
 
@@ -104,26 +115,28 @@ std::vector<int> recursiveBisection(convertgraph::bipartiteGraph& graph,
     D_a.assign(vertices.begin(), vertices.begin() + mid);
     D_b.assign(vertices.begin() + mid, vertices.end());
 
-    std::vector<double> gainsA(D_a.size(), 0.0);
-    std::vector<double> gainsB(D_b.size(), 0.0);
+    std::vector<Gain> gainsA, gainsB;
 
     //std::cout << "Initialize computing move gains for vertices in D_a and D_b" << std::endl;
 
     for (int it = 0; it < maxIterations; ++it) {
-        for (int i = 0; i < mid; ++i) {
+        for (int i = 0; i < D_a.size(); ++i) {
             int v = D_a[i];
-            int u = D_b[i];
-            gainsA[i] = basic::computeMoveGain(graph, v, D_a, D_b);
-            gainsB[i] = basic::computeMoveGain(graph, v, D_b, D_a);
+            gainsA.push_back({computeGainFunc(graph, v, D_a, D_b), i});
         }
 
-        std::sort(gainsA.begin(), gainsA.end());
-        std::sort(gainsB.begin(), gainsB.end());
+        for (int i = 0; i < D_b.size(); ++i) {
+            int v = D_b[i];
+            gainsB.push_back({computeGainFunc(graph, v, D_b, D_a), i});
+        }
+
+        std::sort(gainsA.begin(), gainsA.end(), compareCostGainDecreasing);
+        std::sort(gainsB.begin(), gainsB.end(), compareCostGainDecreasing);
 
         bool swapNeeded = false;
         for (int i = 0; i < mid; ++i) {
-            if (gainsA[i] + gainsB[i] <= 0) { continue; }
-            std::swap(D_a[i], D_b[i]);
+            if (gainsA[i].gain + gainsB[i].gain <= 0) { continue; }
+            std::swap(D_a[gainsA[i].vertexIdx], D_b[gainsB[i].vertexIdx]);
             swapNeeded = true;
         }
 
@@ -133,8 +146,8 @@ std::vector<int> recursiveBisection(convertgraph::bipartiteGraph& graph,
         }
     }
     
-    std::vector<int> newVerticesA = recursiveBisection(graph, D_a, d + 1, maxDepth, maxIterations);
-    std::vector<int> newVerticesB = recursiveBisection(graph, D_b, d + 1, maxDepth, maxIterations);
+    std::vector<int> newVerticesA = recursiveBisection(graph, D_a, d + 1, maxDepth, maxIterations, computeGainFunc);
+    std::vector<int> newVerticesB = recursiveBisection(graph, D_b, d + 1, maxDepth, maxIterations, computeGainFunc);
     vertices.clear();
     vertices.insert(vertices.end(), newVerticesA.begin(), newVerticesA.end());
     vertices.insert(vertices.end(), newVerticesB.begin(), newVerticesB.end());

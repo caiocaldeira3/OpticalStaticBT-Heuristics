@@ -109,7 +109,7 @@ void test_computeMoveGain_basic() {
     assert(std::isfinite(gain));
 }
 
-void test_computeMoveGainW_basic() {
+void test_computeMoveGainWeighted_basic() {
     // Weighted bipartite graph: 2 rows, 4 vertices
     convertgraph::bipartiteGraph graph(4);
     graph[0][0] = 1;
@@ -125,23 +125,23 @@ void test_computeMoveGainW_basic() {
     std::vector<int> D_b = {1, 3};
 
     // Test weighted move gain for vertex 0
-    double gain = basic::computeMoveGainW(graph, 0, D_a, D_b);
-    std::cout << "computeMoveGainW (vertex 0): " << gain << std::endl;
+    double gain = basic::computeMoveGainWeighted(graph, 0, D_a, D_b);
+    std::cout << "computeMoveGainWeighted (vertex 0): " << gain << std::endl;
     assert(std::isfinite(gain));
 
     // Test weighted move gain for vertex 1
-    gain = basic::computeMoveGainW(graph, 1, D_b, D_a);
-    std::cout << "computeMoveGainW (vertex 1): " << gain << std::endl;
+    gain = basic::computeMoveGainWeighted(graph, 1, D_b, D_a);
+    std::cout << "computeMoveGainWeighted (vertex 1): " << gain << std::endl;
     assert(std::isfinite(gain));
 
     // Test weighted move gain for vertex 2
-    gain = basic::computeMoveGainW(graph, 2, D_a, D_b);
-    std::cout << "computeMoveGainW (vertex 2): " << gain << std::endl;
+    gain = basic::computeMoveGainWeighted(graph, 2, D_a, D_b);
+    std::cout << "computeMoveGainWeighted (vertex 2): " << gain << std::endl;
     assert(std::isfinite(gain));
 
     // Test weighted move gain for vertex 3
-    gain = basic::computeMoveGainW(graph, 3, D_b, D_a);
-    std::cout << "computeMoveGainW (vertex 3): " << gain << std::endl;
+    gain = basic::computeMoveGainWeighted(graph, 3, D_b, D_a);
+    std::cout << "computeMoveGainWeighted (vertex 3): " << gain << std::endl;
     assert(std::isfinite(gain));
 }
 
@@ -161,7 +161,39 @@ void test_recursiveBisection_basic() {
     int maxDepth = 3;
     int maxIterations = 3;
 
-    std::vector<int> result = basic::recursiveBisection(graph, vertices, 0, maxDepth, maxIterations);
+    std::vector<int> result = basic::recursiveBisection(graph, vertices, 0, maxDepth, maxIterations, basic::computeMoveGain);
+    std::cout << "recursiveBisection result size: " << result.size() << std::endl;
+    assert(result.size() == 4);
+
+    // Should contain all original vertices
+    for (int v = 0; v < 4; ++v) {
+        assert(std::find(result.begin(), result.end(), v) != result.end());
+    }
+
+    std::cout << "recursiveBisection result: ";
+    for (int v : result) {
+        std::cout << v << " ";
+    }
+    std::cout << std::endl;
+}
+
+void test_recursiveBisectionWeighted_basic() {
+    // Simple bipartite graph: 1 row, 4 vertices
+    convertgraph::bipartiteGraph graph(4);
+    graph[0][0] = 2;
+    graph[0][1] = 2;
+    graph[1][0] = 1;
+    graph[1][2] = 1;
+    graph[2][1] = 3;
+    graph[2][2] = 3;
+    graph[3][2] = 1;
+    graph[3][3] = 1;
+
+    std::vector<int> vertices = {0, 2, 1, 3};
+    int maxDepth = 3;
+    int maxIterations = 3;
+
+    std::vector<int> result = basic::recursiveBisection(graph, vertices, 0, maxDepth, maxIterations, basic::computeMoveGainWeighted);
     std::cout << "recursiveBisection result size: " << result.size() << std::endl;
     assert(result.size() == 4);
 
@@ -181,7 +213,8 @@ int main (int argc, char* argv[]) {
     test_convertGraphToBipartiteGraphMLogA();
     test_convertGraphToBipartiteGraphMLogGapA();
     test_computeMoveGain_basic();
-    test_computeMoveGainW_basic();
+    test_computeMoveGainWeighted_basic();
     test_recursiveBisection_basic();
+    test_recursiveBisectionWeighted_basic();
     std::cout << "All graphbissectionLog tests passed!" << std::endl;
 }
