@@ -1,13 +1,13 @@
 #pragma once
 
-
 #include <set>
 #include <memory>
 #include <vector>
 #include <algorithm>
-#include <numeric> 
+#include <numeric>
 
 #include <core/util.hh>
+#include <core/logging.hh>
 #include <convertgraph.hh>
 
 
@@ -56,6 +56,10 @@ double computeMoveGain(convertgraph::bipartiteGraph& graph,
         //std::cout << "Current gain: " << gain << std::endl;
     }
 
+    if (std::isnan(gain) || std::isinf(gain)) {
+        throw std::runtime_error("Cost gain is NaN or Inf.");
+    }
+
     return gain;
 }
 
@@ -92,15 +96,23 @@ double computeMoveGainWeighted(convertgraph::bipartiteGraph& graph,
         // std::cout << "Current gain: " << gain << std::endl;
     }
 
+    if (std::isnan(gain) || std::isinf(gain)) {
+        throw std::runtime_error("Cost gain is NaN or Inf.");
+    }
+
     return gain;
 }
 
+
+// TODO: Improve the recursive bisection function to use vertices directly instead of creating new vectors for D_a and D_b.
+// This will reduce memory overhead and improve performance.
 template<typename Func>
 std::vector<int> recursiveBisection(convertgraph::bipartiteGraph& graph, 
                                     std::vector<int>& vertices,
                                     int d,
                                     int maxDepth,
                                     int maxIterations,
+                                    OrderingLogger& logger,
                                     Func computeGainFunc) {
 
     // std::cout << "Recursive bisection at depth: " << d << ", vertices size: " << vertices.size() << std::endl;                                    
@@ -146,13 +158,33 @@ std::vector<int> recursiveBisection(convertgraph::bipartiteGraph& graph,
         }
     }
     
-    std::vector<int> newVerticesA = recursiveBisection(graph, D_a, d + 1, maxDepth, maxIterations, computeGainFunc);
-    std::vector<int> newVerticesB = recursiveBisection(graph, D_b, d + 1, maxDepth, maxIterations, computeGainFunc);
+    std::vector<int> newVerticesA = recursiveBisection(graph, D_a, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
+    std::vector<int> newVerticesB = recursiveBisection(graph, D_b, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
     vertices.clear();
     vertices.insert(vertices.end(), newVerticesA.begin(), newVerticesA.end());
     vertices.insert(vertices.end(), newVerticesB.begin(), newVerticesB.end());
 
     return vertices;
 }
+
+double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices, 
+                                                    convertgraph::bipartiteGraph& graph, 
+                                                    std::vector<std::vector<double>>& demandMatrix,
+                                                    int maxDepth,
+                                                    int maxIterations,
+                                                    OrderingLogger& logger) {
+    int nVertices = vertices.size();                                                    
+                                                        
+    std::vector<int> reorder = recursiveBisection(graph, vertices, 0, maxDepth, maxIterations, logger, basic::computeMoveGain);
+
+    std::vector<std::vector<int>> tree(nVertices, std::vector<int>());
+    buildBalancedBinaryTree(vertices, tree, {0, nVertices}, -1);
+
+    double totalCost = treeCost(tree, demandMatrix);
+    logger.logTotalCost(totalCost);
+
+    return totalCost;
+}
+
 
 } // namespace basic

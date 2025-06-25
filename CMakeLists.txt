@@ -11,8 +11,9 @@ include_directories(${INC_DIR})
 add_executable(main ${SRCDIR}/main.cc)
 add_executable(pop ${SRCDIR}/popGen.cc)
 add_executable(work ${SRCDIR}/workload.cc)
+add_executable(run ${SRCDIR}/run.cc)
 add_executable(test ${SRCDIR}/test_graphbissectionLog.cc)
 
-set_target_properties(main pop work test PROPERTIES
+set_target_properties(main pop work run test PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
 )

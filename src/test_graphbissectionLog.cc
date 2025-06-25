@@ -161,7 +161,10 @@ void test_recursiveBisection_basic() {
     int maxDepth = 3;
     int maxIterations = 3;
 
-    std::vector<int> result = basic::recursiveBisection(graph, vertices, 0, maxDepth, maxIterations, basic::computeMoveGain);
+    // create OrderingLogger instance
+    OrderingLogger logger("basic", maxIterations, maxDepth, "output");
+
+    std::vector<int> result = basic::recursiveBisection(graph, vertices, 0, maxDepth, maxIterations, logger, basic::computeMoveGain);
     std::cout << "recursiveBisection result size: " << result.size() << std::endl;
     assert(result.size() == 4);
 
@@ -193,7 +196,10 @@ void test_recursiveBisectionWeighted_basic() {
     int maxDepth = 3;
     int maxIterations = 3;
 
-    std::vector<int> result = basic::recursiveBisection(graph, vertices, 0, maxDepth, maxIterations, basic::computeMoveGainWeighted);
+    // create OrderingLogger instance
+    OrderingLogger logger("basic", maxIterations, maxDepth, "output");
+
+    std::vector<int> result = basic::recursiveBisection(graph, vertices, 0, maxDepth, maxIterations, logger, basic::computeMoveGainWeighted);
     std::cout << "recursiveBisection result size: " << result.size() << std::endl;
     assert(result.size() == 4);
 
