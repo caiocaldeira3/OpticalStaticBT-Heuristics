@@ -6,9 +6,12 @@
 #include <random>
 #include <chrono>
 #include <numeric>
+#include <cmath>
 
 #include <argparse/argparse.hh>
 #include <core/logging.hh>
+#include <treebuilders/optbst.hh>
+#include <treebuilders/greedy.hh>
 #include <convertgraph.hh>
 #include <graphbissectionLog.hh>
 
@@ -32,7 +35,7 @@ void parseArguments(int argc, char* argv[], Options& options) {
         .help("the test number");
 
     parser.add_argument("--max-iterations")
-        .default_value(15)
+        .default_value(20)
         .store_into(options.maxIterations)
         .help("Dot-separated list of algorithms to run (e.g., basic.mloggap.onehop)");
 
@@ -108,6 +111,25 @@ bool loadDataset(const std::string& filename, int& numVertices,
     return true;
 }
 
+// module of a number using std::abs
+
+
+double computeMLogACost(
+    const std::vector<int>& vertices,
+    const std::vector<std::vector<double>>& demandMatrix
+) {
+    // Iterate edges and compute the cost based on the MLogA algorithm
+    double totalCost = 0.0;
+    for (int i = 0; i < vertices.size(); ++i) {
+        for (int j = i + 1; j < vertices.size(); ++j) {
+            int src = vertices[i];
+            int dst = vertices[j];
+            totalCost += demandMatrix[src][dst] * std::log2(std::abs(i - j));
+        }
+    }
+    return totalCost;
+}
+
 int main (int argc, char* argv[]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     srand(seed);
@@ -137,14 +159,14 @@ int main (int argc, char* argv[]) {
     // create output directory if it does not exist
     std::filesystem::create_directories(options.outputDirectory);
 
-    // create a vector of vertices with size numVertices and fill it with indices from 0 to numVertices - 1
-    std::vector<int> vertices(numVertices);
-    std::iota(vertices.begin(), vertices.end(), 0);
-
     OrderingLogger logger(options.outputDirectory);
     logger.createFile();
 
-    for (int depth = 1; depth <= options.maxDepth; ++depth) {
+    for (int depth = 20; depth <= options.maxDepth; ++depth) {
+        // create a vector of vertices with size numVertices and fill it with indices from 0 to numVertices - 1
+        std::vector<int> vertices(numVertices);
+        std::iota(vertices.begin(), vertices.end(), 0);
+
         std::cout << "Running algorithm: " << options.algorithm 
                   << " with max depth: " << depth 
                   << " and max iterations: " << options.maxIterations << std::endl;
@@ -160,6 +182,30 @@ int main (int argc, char* argv[]) {
         logger.logTotalCost(totalCost);
         std::cout << "Total cost after reordering: " << totalCost << std::endl;
 
+        // compute the cost of the MLogA algorithm
+        double mlogACost = computeMLogACost(vertices, demandMatrix);
+        std::cout << "MLogA cost: " << mlogACost << std::endl;
+        // logger.logTotalCost(mlogACost);
+
+        logger.pushToFile();
+
+        // Now compute the optimal BST cost --------
+        logger.setAlgorithm("optimal-bst");
+        logger.setDatasetName(options.datasetName);
+
+        double obstCost = optimalBST(numVertices, demandMatrix);
+        std::cout << "Optimal BST cost: " << obstCost << std::endl;
+        logger.logTotalCost(obstCost);
+
+        logger.pushToFile();
+
+        // Now compute the greedy cost -----------
+        logger.setAlgorithm("greedy");
+        logger.setDatasetName(options.datasetName);
+
+        double greedyCost = greedyConstructor(numVertices, demandMatrix);
+        std::cout << "Greedy cost: " << greedyCost << std::endl;
+        logger.logTotalCost(greedyCost);
         logger.pushToFile();
     }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/util.hh>
 #include <assert.h>
 
 struct IntervalRoot_t{

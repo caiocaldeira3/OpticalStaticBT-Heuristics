@@ -89,9 +89,13 @@ double computeMoveGainWeighted(convertgraph::bipartiteGraph& graph,
         });
         // std::cout << "da: " << da << ", db: " << db << std::endl;
 
-        gain = gain + ((da * std::log2(n_Da / (double)(da + 1))) + (db * std::log2(n_Db / (double)(db + 1))));
-        gain = gain - (((da - graph[t].at(vertex)) * std::log2((n_Da / (double)da))) 
-                    + ((db + graph[t].at(vertex)) * std::log2((n_Db / (double)(db + graph[t].at(vertex) + 1)))));
+        double addGainA = (da * std::log2(n_Da / (double)(da + 1)));
+        double addGainB = (db * std::log2(n_Db / (double)(db + 1)));
+        double removeGainA = (da - graph[t].at(vertex)) * std::log2(n_Da / (double)(da - graph[t].at(vertex) + 1));
+        double removeGainB = (db + graph[t].at(vertex)) * std::log2(n_Db / (double)(db + graph[t].at(vertex) + 1));
+
+        gain = gain + (addGainA + addGainB);
+        gain = gain - (removeGainA + removeGainB);
 
         // std::cout << "Current gain: " << gain << std::endl;
     }
@@ -129,7 +133,7 @@ std::vector<int> recursiveBisection(convertgraph::bipartiteGraph& graph,
 
     std::vector<Gain> gainsA, gainsB;
 
-    //std::cout << "Initialize computing move gains for vertices in D_a and D_b" << std::endl;
+    // std::cout << "Initialize computing move gains for vertices in D_a and D_b" << std::endl;
 
     for (int it = 0; it < maxIterations; ++it) {
         for (int i = 0; i < D_a.size(); ++i) {
@@ -175,7 +179,7 @@ double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices,
                                                     OrderingLogger& logger) {
     int nVertices = vertices.size();                                                    
                                                         
-    std::vector<int> reorder = recursiveBisection(graph, vertices, 0, maxDepth, maxIterations, logger, basic::computeMoveGain);
+    std::vector<int> reorder = recursiveBisection(graph, vertices, 0, maxDepth, maxIterations, logger, basic::computeMoveGainWeighted);
 
     std::vector<std::vector<int>> tree(nVertices, std::vector<int>());
     buildBalancedBinaryTree(vertices, tree, {0, nVertices}, -1);

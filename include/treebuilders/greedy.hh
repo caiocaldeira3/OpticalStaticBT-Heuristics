@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <assert.h>
 #include <algorithm>
+#include <core/util.hh>
 
 
 std::vector<int> rank;
