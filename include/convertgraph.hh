@@ -10,15 +10,25 @@ using bipartiteGraph = std::vector<std::unordered_map<int, double>>;
 bipartiteGraph convertGraphToBipartiteGraphMLogA(const std::vector<std::vector<double>>& demandMatrix) {
     int nVertices = demandMatrix.size();
     bipartiteGraph bGraph;
-    
+
+    std::vector<std::vector<double>> copyDemand(nVertices, std::vector<double>(nVertices));
     for (int i = 0; i < nVertices; ++i) {
-        for (int j = i + 1; j < nVertices; ++j) {
-            if (demandMatrix[i][j] != 0.0) {
+        for (int j = 0; j < nVertices; ++j) {
+            if (i > j)
+                continue;
+            
+            copyDemand[i][j] = demandMatrix[i][j] + (i != j ? demandMatrix[j][i] : 0);
+        }
+    }
+
+    for (int i = 0; i < nVertices; ++i) {
+        for (int j = 0; j < nVertices; ++j) {
+            if (!isClose(copyDemand[i][j], 0)) {
                 std::unordered_map<int, double> adjacentVertices;
 
                 // Connect edge node to vertices i and j
-                adjacentVertices[i] = demandMatrix[i][j];
-                adjacentVertices[j] = demandMatrix[i][j];
+                adjacentVertices[i] = copyDemand[i][j];
+                adjacentVertices[j] = copyDemand[i][j];
 
                 bGraph.push_back(adjacentVertices);
             }
@@ -36,7 +46,7 @@ bipartiteGraph convertGraphToBipartiteGraphMLogGapA(const std::vector<std::vecto
         std::unordered_map<int, double> adjacentVertices;
 
         for (int j = 0; j < nVertices; ++j) {
-            if (i != j && demandMatrix[i][j] != 0.0) {
+            if (i != j && !isClose(demandMatrix[i][j], 0)) {
                 adjacentVertices[j] = demandMatrix[i][j];                
             }
         }

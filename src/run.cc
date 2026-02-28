@@ -28,16 +28,16 @@ void parseArguments(int argc, char* argv[], Options& options) {
 
     parser.add_argument("--algorithm")
         .store_into(options.algorithm)
-        .help("the name of the input in weights folder");
+        .help("the name of the algorithm");
 
     parser.add_argument("--max-depth")
         .store_into(options.maxDepth)
-        .help("the test number");
+        .help("the max depth of recursion");
 
     parser.add_argument("--max-iterations")
         .default_value(20)
         .store_into(options.maxIterations)
-        .help("Dot-separated list of algorithms to run (e.g., basic.mloggap.onehop)");
+        .help("max number of iterations per recursion level");
 
     parser.add_argument("--dataset-name")
         .store_into(options.datasetName)
@@ -162,51 +162,49 @@ int main (int argc, char* argv[]) {
     OrderingLogger logger(options.outputDirectory);
     logger.createFile();
 
-    for (int depth = 20; depth <= options.maxDepth; ++depth) {
-        // create a vector of vertices with size numVertices and fill it with indices from 0 to numVertices - 1
-        std::vector<int> vertices(numVertices);
-        std::iota(vertices.begin(), vertices.end(), 0);
+    // create a vector of vertices with size numVertices and fill it with indices from 0 to numVertices - 1
+    std::vector<int> vertices(numVertices);
+    std::iota(vertices.begin(), vertices.end(), 0);
 
-        std::cout << "Running algorithm: " << options.algorithm 
-                  << " with max depth: " << depth 
-                  << " and max iterations: " << options.maxIterations << std::endl;
+    std::cout << "Running algorithm: " << options.algorithm 
+                << " with max depth: " << options.maxDepth
+                << " and max iterations: " << options.maxIterations << std::endl;
 
-        logger.setAlgorithm(options.algorithm);
-        logger.setMaxDepth(depth);
-        logger.setMaxIterations(options.maxIterations);
-        logger.setDatasetName(options.datasetName);
+    logger.setAlgorithm(options.algorithm);
+    logger.setMaxDepth(options.maxDepth);
+    logger.setMaxIterations(options.maxIterations);
+    logger.setDatasetName(options.datasetName);
 
-        double totalCost = basic::computeBalancedBinaryTreeCostAfterReordering(
-            vertices, graph, demandMatrix, depth, options.maxIterations, logger
-        );
-        logger.logTotalCost(totalCost);
-        std::cout << "Total cost after reordering: " << totalCost << std::endl;
+    double totalCost = basic::computeBalancedBinaryTreeCostAfterReordering(
+        vertices, graph, demandMatrix, options.maxDepth, options.maxIterations, logger
+    );
+    logger.logTotalCost(totalCost);
+    std::cout << "Total cost after reordering: " << totalCost << std::endl;
 
-        // compute the cost of the MLogA algorithm
-        double mlogACost = computeMLogACost(vertices, demandMatrix);
-        std::cout << "MLogA cost: " << mlogACost << std::endl;
-        // logger.logTotalCost(mlogACost);
+    // compute the cost of the MLogA algorithm
+    double mlogACost = computeMLogACost(vertices, demandMatrix);
+    std::cout << "MLogA cost: " << mlogACost << std::endl;
+    // logger.logTotalCost(mlogACost);
 
-        logger.pushToFile();
+    logger.pushToFile();
 
-        // Now compute the optimal BST cost --------
-        logger.setAlgorithm("optimal-bst");
-        logger.setDatasetName(options.datasetName);
+    // // Now compute the optimal BST cost --------
+    // logger.setAlgorithm("optimal-bst");
+    // logger.setDatasetName(options.datasetName);
 
-        double obstCost = optimalBST(numVertices, demandMatrix);
-        std::cout << "Optimal BST cost: " << obstCost << std::endl;
-        logger.logTotalCost(obstCost);
+    // double obstCost = optimalBST(numVertices, demandMatrix);
+    // std::cout << "Optimal BST cost: " << obstCost << std::endl;
+    // logger.logTotalCost(obstCost);
 
-        logger.pushToFile();
+    // logger.pushToFile();
 
-        // Now compute the greedy cost -----------
-        logger.setAlgorithm("greedy");
-        logger.setDatasetName(options.datasetName);
+    // // Now compute the greedy cost -----------
+    // logger.setAlgorithm("greedy");
+    // logger.setDatasetName(options.datasetName);
 
-        double greedyCost = greedyConstructor(numVertices, demandMatrix);
-        std::cout << "Greedy cost: " << greedyCost << std::endl;
-        logger.logTotalCost(greedyCost);
-        logger.pushToFile();
-    }
+    // double greedyCost = greedyConstructor(numVertices, demandMatrix);
+    // std::cout << "Greedy cost: " << greedyCost << std::endl;
+    // logger.logTotalCost(greedyCost);
+    // logger.pushToFile();
 
 }

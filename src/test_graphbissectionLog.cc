@@ -24,18 +24,18 @@ void test_convertGraphToBipartiteGraphMLogA() {
 
     // Edge (0,1)
     assert(bGraph[0].size() == 2);
-    assert(bGraph[0].at(0) == 1.0);
-    assert(bGraph[0].at(1) == 1.0);
+    assert(bGraph[0].at(0) == 2.0);
+    assert(bGraph[0].at(1) == 2.0);
 
     // Edge (0,2)
     assert(bGraph[1].size() == 2);
-    assert(bGraph[1].at(0) == 2.0);
-    assert(bGraph[1].at(2) == 2.0);
+    assert(bGraph[1].at(0) == 4.0);
+    assert(bGraph[1].at(2) == 4.0);
 
     // Edge (1,2)
     assert(bGraph[2].size() == 2);
-    assert(bGraph[2].at(1) == 3.0);
-    assert(bGraph[2].at(2) == 3.0);
+    assert(bGraph[2].at(1) == 6.0);
+    assert(bGraph[2].at(2) == 6.0);
 
     std::cout << "test_convertGraphToBipartiteGraphMLogA passed.\n";
 }

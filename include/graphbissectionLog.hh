@@ -132,6 +132,17 @@ double computeMoveGainEntropy(convertgraph::bipartiteGraph& graph,
                               int b_begin, int b_end) {
     double gain = 0.0;
 
+    double W_a = 0, W_b = 0;
+    for (int t = 0; t < graph.size(); ++t) {
+        for (int v = a_begin; v < a_end; ++v) {
+            W_a += graph[t].find(v) != graph[t].end() ? graph[t].at(v) : W_a;
+        }
+
+        for (int v = b_begin; v < b_end; ++v) {
+            W_b += graph[t].find(v) != graph[t].end() ? graph[t].at(v) : W_a;
+        }
+    }    
+
     std::cout << "Computing move gain for vertex: " << vertex << std::endl;
 
     for (int t = 0; t < graph.size(); ++t) {
@@ -141,13 +152,6 @@ double computeMoveGainEntropy(convertgraph::bipartiteGraph& graph,
             continue;
         }
         std::cout << "Vertex " << vertex << " found in graph at term " << t << std::endl;
-
-        double W_a = std::accumulate(vertices.begin() + a_begin, vertices.begin() + a_end, 0, [&](double acc, int v) { 
-            return acc + graph[t].at(v); 
-        });
-        double W_b = std::accumulate(vertices.begin() + b_begin, vertices.begin() + b_end, 0, [&](double acc, int v) { 
-            return acc + graph[t].at(v);
-        });
 
         std::cout << "W_a: " << W_a << ", W_b: " << W_b << std::endl;
 
@@ -161,9 +165,9 @@ double computeMoveGainEntropy(convertgraph::bipartiteGraph& graph,
         std::cout << "w_a: " << w_a << ", w_b: " << w_b << std::endl;
 
         double addGainA = (w_a * std::log2(W_a / (double)(w_a + 1)));
-        double addGainB = (w_b * std::log2(W_b / (double)(w_b + 1)));
+        double addGainB = isClose(W_a, 0) ? 0 : (w_b * std::log2(W_b / (double)(w_b + 1)));
         double removeGainA = (w_a - graph[t].at(vertex)) * std::log2(W_a / (double)(w_a));
-        double removeGainB = (w_b + graph[t].at(vertex)) * std::log2(W_b / (double)(w_b + 2));
+        double removeGainB = isClose(W_b, 0) ? 0 : (w_b + graph[t].at(vertex)) * std::log2(W_b / (double)(w_b + graph[t].at(vertex)));
 
         gain = gain + (addGainA + addGainB);
         gain = gain - (removeGainA + removeGainB);
@@ -206,15 +210,15 @@ void recursiveBisection(convertgraph::bipartiteGraph& graph,
     for (int it = 0; it < maxIterations; ++it) {
 
         // Compute gains for vertices in D_a
-        for (int i = begin; i < mid + 1; ++i) {
+        for (int i = begin; i < mid; ++i) {
             int v = vertices[i];
-            gainsA.push_back({computeGainFunc(graph, v, vertices, begin, mid+1, mid+1, end), i});
+            gainsA.push_back({computeGainFunc(graph, v, vertices, begin, mid, mid, end), i});
         }
 
         // Compute gains for vertices in D_b
-        for (int i = mid + 1; i < end; ++i) {
+        for (int i = mid; i < end; ++i) {
             int v = vertices[i];
-            gainsB.push_back({computeGainFunc(graph, v, vertices, mid+1, end, begin, mid+1), i});
+            gainsB.push_back({computeGainFunc(graph, v, vertices, mid, end, begin, mid), i});
         }
 
         // Sort gains in decreasing order
@@ -224,7 +228,7 @@ void recursiveBisection(convertgraph::bipartiteGraph& graph,
         // Perform swaps based on positive gains
         bool swapNeeded = false;
         for (int i = 0; i < mid; ++i) {
-            if (gainsA[i].gain + gainsB[i].gain <= 0) { continue; }
+            if (gainsA[i].gain + gainsB[i].gain <= 0) { break; }
             std::swap(vertices[gainsA[i].vertexIdx], vertices[gainsB[i].vertexIdx]);
             swapNeeded = true;
         }
@@ -236,8 +240,8 @@ void recursiveBisection(convertgraph::bipartiteGraph& graph,
     }
     
     // Recurse on the two halves
-    recursiveBisection(graph, vertices, begin, mid+1, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
-    recursiveBisection(graph, vertices, mid+1, end, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
+    recursiveBisection(graph, vertices, begin, mid, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
+    recursiveBisection(graph, vertices, mid, end, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
 
     return;
 }
@@ -250,7 +254,7 @@ double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices,
                                                     OrderingLogger& logger) {
     int nVertices = vertices.size();
                                                         
-    recursiveBisection(graph, vertices, 0 /*begin*/, nVertices/*end*/, 0, maxDepth, maxIterations, logger, basic::computeMoveGainWeighted);
+    recursiveBisection(graph, vertices, 0 /*begin*/, nVertices/*end*/, 0 /*current level*/, maxDepth, maxIterations, logger, basic::computeMoveGainWeighted);
 
     std::vector<std::vector<int>> tree(nVertices, std::vector<int>());
     buildBalancedBinaryTree(vertices, tree, {0, nVertices}, -1);
