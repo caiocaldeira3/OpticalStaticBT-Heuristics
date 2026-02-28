@@ -32,6 +32,10 @@ public:
         tCost = totalCost;
     }
 
+    void logMLogACost (double mlogacost) {
+        mLogACost = mlogacost;
+    }
+
     void setFileName (const std::string& fileName) {
         outputDirectory = fileName;
     }
@@ -89,16 +93,6 @@ public:
         return maxOccurences;
     }
 
-    void createFile() const {
-        std::ofstream outFile(outputDirectory + "/result.csv");
-        if (outFile.is_open()) {
-            outFile << "data_set,algorithm,max_iterations,max_depth,total_cost,average_cost_gain,average_swapped_pairs,average_num_iterations\n";
-            outFile.close();
-        } else {
-            std::cerr << "Error: Could not create output file." << std::endl;
-        }
-    }
-
     // Function to append information to an existing file in csv format with the following header: algorithm, max_iterations, max_depth, total_cost, average_cost_gain, average_swapped_pairs, average_num_iterations
     void pushToFile() const {
         std::ofstream outFile(outputDirectory + "/result.csv", std::ios::app);
@@ -111,10 +105,8 @@ public:
                 << algorithm << ","
                 << maxIterations << "," 
                 << maxDepth << ","
-                << tCost << ","
-                << getAverageCostGainPerRecursion() << ","
-                << getAverageSwappedPairsPerIteration() << ","
-                << getAverageNumIterationsPerRecursion() << "\n";
+                << tCost << "," 
+                << mLogACost << "\n";
 
         outFile.close();
     }
@@ -135,10 +127,12 @@ private:
     std::vector<int> numIterationPerRecursion;
     std::vector<double> costGainPerIteration;
 
+    int currIteration;
     int maxIterations;
     int maxDepth;
 
     double tCost = 0.0;
+    double mLogACost = 0.0;
 
     std::string algorithm = "no specified"; // Name of the algorithm used
     std::string datasetName = "default"; // Name of the dataset used

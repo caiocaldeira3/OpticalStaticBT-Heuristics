@@ -3,6 +3,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include <core/util.hh>
+
 namespace convertgraph {
 
 using bipartiteGraph = std::vector<std::unordered_map<int, double>>;

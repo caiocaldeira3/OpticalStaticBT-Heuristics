@@ -160,7 +160,6 @@ int main (int argc, char* argv[]) {
     std::filesystem::create_directories(options.outputDirectory);
 
     OrderingLogger logger(options.outputDirectory);
-    logger.createFile();
 
     // create a vector of vertices with size numVertices and fill it with indices from 0 to numVertices - 1
     std::vector<int> vertices(numVertices);
@@ -184,27 +183,9 @@ int main (int argc, char* argv[]) {
     // compute the cost of the MLogA algorithm
     double mlogACost = computeMLogACost(vertices, demandMatrix);
     std::cout << "MLogA cost: " << mlogACost << std::endl;
-    // logger.logTotalCost(mlogACost);
+    logger.logMLogACost(mlogACost);
 
     logger.pushToFile();
 
-    // // Now compute the optimal BST cost --------
-    // logger.setAlgorithm("optimal-bst");
-    // logger.setDatasetName(options.datasetName);
-
-    // double obstCost = optimalBST(numVertices, demandMatrix);
-    // std::cout << "Optimal BST cost: " << obstCost << std::endl;
-    // logger.logTotalCost(obstCost);
-
-    // logger.pushToFile();
-
-    // // Now compute the greedy cost -----------
-    // logger.setAlgorithm("greedy");
-    // logger.setDatasetName(options.datasetName);
-
-    // double greedyCost = greedyConstructor(numVertices, demandMatrix);
-    // std::cout << "Greedy cost: " << greedyCost << std::endl;
-    // logger.logTotalCost(greedyCost);
-    // logger.pushToFile();
 
 }
