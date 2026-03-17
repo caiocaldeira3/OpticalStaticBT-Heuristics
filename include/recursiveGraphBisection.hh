@@ -11,7 +11,7 @@
 #include <convertgraph.hh>
 
 
-namespace basic {
+namespace graphBisection {
 
 struct Gain {
     double gain;
@@ -383,7 +383,7 @@ double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices,
                                                         
     //recursiveBisection(graph, vertices, 0 /*begin*/, nVertices/*end*/, 0 /*current level*/, maxDepth, maxIterations, logger, basic::computeMoveGain);
 
-    std::vector<int> reorder = recursiveBisectionPrevious(graph, vertices, 0, maxDepth, maxIterations, logger, basic::computeMoveGainPrevious);                                                    
+    std::vector<int> reorder = recursiveBisectionPrevious(graph, vertices, 0, maxDepth, maxIterations, logger, graphBisection::computeMoveGainPrevious);                                                    
 
     std::vector<std::vector<int>> tree(nVertices, std::vector<int>());
     buildBalancedBinaryTree(vertices, tree, {0, nVertices}, -1);

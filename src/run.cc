@@ -174,7 +174,7 @@ int main (int argc, char* argv[]) {
     logger.setMaxIterations(options.maxIterations);
     logger.setDatasetName(options.datasetName);
 
-    double totalCost = basic::computeBalancedBinaryTreeCostAfterReordering(
+    double totalCost = graphBisection::computeBalancedBinaryTreeCostAfterReordering(
         vertices, graph, demandMatrix, options.maxDepth, options.maxIterations, logger
     );
     logger.logTotalCost(totalCost);
