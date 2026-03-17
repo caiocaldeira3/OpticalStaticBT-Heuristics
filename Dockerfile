@@ -10,12 +10,6 @@ RUN apt-get update && apt-get install -y \
     vim \
     && apt-get clean
 
-# Install Google Test
-RUN git clone https://github.com/google/googletest.git /opt/googletest \
-    && cd /opt/googletest \
-    && cmake -B build -S . \
-    && cmake --build build --target install
-
 # Add non-root user
 RUN useradd -ms /bin/bash vscode
 USER vscode

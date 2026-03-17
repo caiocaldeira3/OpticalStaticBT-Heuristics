@@ -1,19 +1,9 @@
 ### Building
-cd build
-cmake ..
-cmake --build .
+cmake -S . -B build
+cmake --build build
 
 ### Run tests
 ./bin/test
 
-
-
-csv
-
-objFunction = {mloga, mlogGapa, treecost}
-
-
-//
-algorithm, dataset, maxIteration, maxDepth, treeCost, mloga
-
+### Running graph bisection algorithm
 ./bin/run --max-depth 20 --algorithm mloga --dataset-name datasets/tor/tor_128.txt --output-directory output/ancestral

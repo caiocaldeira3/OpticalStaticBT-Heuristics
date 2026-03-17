@@ -5,7 +5,7 @@
 #include <cmath>
 
 #include <convertgraph.hh>
-#include <graphbissectionLog.hh>
+#include <recursiveGraphBisection.hh>
 
 void test_convertGraphToBipartiteGraphMLogA() {
     using namespace convertgraph;

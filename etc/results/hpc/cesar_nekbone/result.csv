@@ -1,0 +1,4 @@
+data_set,algorithm,max_iterations,max_depth,total_cost,average_cost_gain,average_swapped_pairs,average_num_iterations
+datasets/hpcDS/cesar_nekbone.txt,mloga,40,20,1.9131e+07,0,0,0
+datasets/hpcDS/cesar_nekbone.txt,optimal-bst,40,20,1.62926e+07,0,0,0
+datasets/hpcDS/cesar_nekbone.txt,greedy,40,20,9.17905e+06,0,0,0

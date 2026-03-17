@@ -13,7 +13,7 @@
 #include <treebuilders/optbst.hh>
 #include <treebuilders/greedy.hh>
 #include <convertgraph.hh>
-#include <graphbissectionLog.hh>
+#include <recursiveGraphBisection.hh>
 
 struct Options {
     std::string algorithm;

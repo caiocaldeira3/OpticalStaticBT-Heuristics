@@ -1,0 +1,12 @@
+data_set,algorithm,max_iterations,max_depth,total_cost,average_cost_gain,average_swapped_pairs,average_num_iterations
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,1,6.21957e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,2,6.22033e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,3,6.20457e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,4,6.21234e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,5,6.2104e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,6,6.21197e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,7,6.21197e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,8,6.21197e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,9,6.21197e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,10,6.21197e+06,0,0,0
+datasets/facebookDS/datasetC_pairs.txt,mloga,30,11,6.21197e+06,0,0,0

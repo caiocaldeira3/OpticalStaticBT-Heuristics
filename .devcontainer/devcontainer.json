@@ -1,7 +1,7 @@
 {
   "name": "C++ Dev Container",
   "build": {
-    "dockerfile": "Dockerfile"
+    "dockerfile": "../Dockerfile"
   },
   "settings": {
     "terminal.integrated.defaultProfile.linux": "bash"
