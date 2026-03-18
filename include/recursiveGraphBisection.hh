@@ -8,6 +8,7 @@
 
 #include <core/util.hh>
 #include <core/logging.hh>
+#include <core/log_level.hh>
 #include <convertgraph.hh>
 
 
@@ -28,14 +29,14 @@ double computeMoveGainPrevious(convertgraph::bipartiteGraph& graph,
                         std::vector<int>& D_b) {
     double gain = 0.0;
 
-    //std::cout << "Computing move gain for vertex: " << vertex << std::endl;
+    log(LogLevel::Debug) << "Computing move gain for vertex: " << vertex << "\n";
 
     for (int t = 0; t < graph.size(); ++t) {
-        //std::cout << "Checking graph at term: " << t << std::endl;
+        log(LogLevel::Debug) << "Checking graph at term: " << t << "\n";
         if (graph[t].find(vertex) == graph[t].end()) {
             continue;
         }
-        //std::cout << "Vertex " << vertex << " found in graph at term " << t << std::endl;
+        log(LogLevel::Debug) << "Vertex " << vertex << " found in graph at term " << t << "\n";
 
         int n_Da = D_a.size();
         int n_Db = D_b.size();
@@ -43,7 +44,7 @@ double computeMoveGainPrevious(convertgraph::bipartiteGraph& graph,
         int da = std::count_if(D_a.begin(), D_a.end(), [&](int v) { return graph[t].find(v) != graph[t].end(); });
         int db = std::count_if(D_b.begin(), D_b.end(), [&](int v) { return graph[t].find(v) != graph[t].end(); });
 
-        //std::cout << "da: " << da << ", db: " << db << std::endl;
+        log(LogLevel::Debug) << "da: " << da << ", db: " << db << "\n";
 
         double addGainA = (da * std::log2(n_Da / (double)(da + 1)));
         double addGainB = (db * std::log2(n_Db / (double)(db + 1)));
@@ -53,7 +54,7 @@ double computeMoveGainPrevious(convertgraph::bipartiteGraph& graph,
         gain = gain + (addGainA + addGainB);
         gain = gain - (removeGainA + removeGainB);
 
-        //std::cout << "Current gain: " << gain << std::endl;
+        log(LogLevel::Debug) << "Current gain: " << gain << "\n";
     }
 
     if (std::isnan(gain) || std::isinf(gain)) {
@@ -70,28 +71,28 @@ double computeMoveGain(convertgraph::bipartiteGraph& graph,
                         int b_begin, int b_end) {
     double gain = 0.0;
 
-    // std::cout << "Computing move gain for vertex: " << vertex << std::endl;
+    log(LogLevel::Debug) << "Computing move gain for vertex: " << vertex << "\n";
 
     int n_Da = a_end - a_begin;
     int n_Db = b_end - b_begin;
 
-    // std::cout << "n_Da: " << n_Da << ", n_Db: " << n_Db << std::endl;
+    log(LogLevel::Debug) << "n_Da: " << n_Da << ", n_Db: " << n_Db << "\n";
 
     for (int t = 0; t < graph.size(); ++t) {
-        // std::cout << "Checking graph at term: " << t << std::endl;
+        log(LogLevel::Debug) << "Checking graph at term: " << t << "\n";
         if (graph[t].find(vertex) == graph[t].end()) {
             continue;
         }
-        // std::cout << "Vertex " << vertex << " found in graph at term " << t << std::endl;
+        log(LogLevel::Debug) << "Vertex " << vertex << " found in graph at term " << t << "\n";
 
-        int da = std::count_if(vertices.begin() + a_begin, vertices.begin() + a_end, [&](int v) { 
-            return graph[t].find(v) != graph[t].end(); 
+        int da = std::count_if(vertices.begin() + a_begin, vertices.begin() + a_end, [&](int v) {
+            return graph[t].find(v) != graph[t].end();
         });
-        int db = std::count_if(vertices.begin() + b_begin, vertices.begin() + b_end, [&](int v) { 
-            return graph[t].find(v) != graph[t].end(); 
+        int db = std::count_if(vertices.begin() + b_begin, vertices.begin() + b_end, [&](int v) {
+            return graph[t].find(v) != graph[t].end();
         });
 
-        // std::cout << "da: " << da << ", db: " << db << std::endl;
+        log(LogLevel::Debug) << "da: " << da << ", db: " << db << "\n";
 
         double addGainA = (da * std::log2(n_Da / (double)(da + 1)));
         double addGainB = (db * std::log2(n_Db / (double)(db + 1)));
@@ -101,7 +102,7 @@ double computeMoveGain(convertgraph::bipartiteGraph& graph,
         gain = gain + (addGainA + addGainB);
         gain = gain - (removeGainA + removeGainB);
 
-        // std::cout << "Current gain: " << gain << std::endl;
+        log(LogLevel::Debug) << "Current gain: " << gain << "\n";
     }
 
     if (std::isnan(gain) || std::isinf(gain)) {
@@ -118,35 +119,35 @@ double computeMoveGainWeighted(convertgraph::bipartiteGraph& graph,
                                 int b_begin, int b_end) {
     double gain = 0.0;
 
-    std::cout << "Computing move gain for vertex: " << vertex << std::endl;
+    log(LogLevel::Debug) << "Computing move gain for vertex: " << vertex << "\n";
 
     int n_Da = a_end - a_begin;
     int n_Db = b_end - b_begin;
 
-    std::cout << "n_Da: " << n_Da << ", n_Db: " << n_Db << std::endl;
+    log(LogLevel::Debug) << "n_Da: " << n_Da << ", n_Db: " << n_Db << "\n";
 
     for (int t = 0; t < graph.size(); ++t) {
-        std::cout << "Checking graph at term: " << t << std::endl;
+        log(LogLevel::Debug) << "Checking graph at term: " << t << "\n";
 
         if (graph[t].find(vertex) == graph[t].end()) {
             continue;
         }
-        std::cout << "Vertex " << vertex << " found in graph at term " << t << std::endl;
+        log(LogLevel::Debug) << "Vertex " << vertex << " found in graph at term " << t << "\n";
 
-        int da = std::count_if(vertices.begin() + a_begin, vertices.begin() + a_end, [&](int v) { 
-            return graph[t].find(v) != graph[t].end(); 
+        int da = std::count_if(vertices.begin() + a_begin, vertices.begin() + a_end, [&](int v) {
+            return graph[t].find(v) != graph[t].end();
         });
-        int db = std::count_if(vertices.begin() + b_begin, vertices.begin() + b_end, [&](int v) { 
-            return graph[t].find(v) != graph[t].end(); 
+        int db = std::count_if(vertices.begin() + b_begin, vertices.begin() + b_end, [&](int v) {
+            return graph[t].find(v) != graph[t].end();
         });
 
-        double w_a = std::accumulate(vertices.begin() + a_begin, vertices.begin() + a_end, 0, [&](double acc, int v) { 
-            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc; 
+        double w_a = std::accumulate(vertices.begin() + a_begin, vertices.begin() + a_end, 0, [&](double acc, int v) {
+            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc;
         });
-        double w_b = std::accumulate(vertices.begin() + b_begin, vertices.begin() + b_end, 0, [&](double acc, int v) { 
-            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc; 
+        double w_b = std::accumulate(vertices.begin() + b_begin, vertices.begin() + b_end, 0, [&](double acc, int v) {
+            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc;
         });
-        std::cout << "da: " << da << ", db: " << db << std::endl;
+        log(LogLevel::Debug) << "da: " << da << ", db: " << db << "\n";
 
         double addGainA = (w_a * std::log2(n_Da / (double)(da + 1)));
         double addGainB = (w_b * std::log2(n_Db / (double)(db + 1)));
@@ -156,7 +157,7 @@ double computeMoveGainWeighted(convertgraph::bipartiteGraph& graph,
         gain = gain + (addGainA + addGainB);
         gain = gain - (removeGainA + removeGainB);
 
-        std::cout << "Current gain: " << gain << std::endl;
+        log(LogLevel::Debug) << "Current gain: " << gain << "\n";
     }
 
     if (std::isnan(gain) || std::isinf(gain)) {
@@ -184,26 +185,25 @@ double computeMoveGainEntropy(convertgraph::bipartiteGraph& graph,
         }
     }    
 
-    std::cout << "Computing move gain for vertex: " << vertex << std::endl;
+    log(LogLevel::Debug) << "Computing move gain for vertex: " << vertex << "\n";
 
     for (int t = 0; t < graph.size(); ++t) {
-        std::cout << "Checking graph at term: " << t << std::endl;
+        log(LogLevel::Debug) << "Checking graph at term: " << t << "\n";
 
         if (graph[t].find(vertex) == graph[t].end()) {
             continue;
         }
-        std::cout << "Vertex " << vertex << " found in graph at term " << t << std::endl;
+        log(LogLevel::Debug) << "Vertex " << vertex << " found in graph at term " << t << "\n";
+        log(LogLevel::Debug) << "W_a: " << W_a << ", W_b: " << W_b << "\n";
 
-        std::cout << "W_a: " << W_a << ", W_b: " << W_b << std::endl;
-
-        double w_a = std::accumulate(vertices.begin() + a_begin, vertices.begin() + a_end, 0, [&](double acc, int v) { 
-            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc; 
+        double w_a = std::accumulate(vertices.begin() + a_begin, vertices.begin() + a_end, 0, [&](double acc, int v) {
+            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc;
         });
-        double w_b = std::accumulate(vertices.begin() + b_begin, vertices.begin() + b_end, 0, [&](double acc, int v) { 
-            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc; 
+        double w_b = std::accumulate(vertices.begin() + b_begin, vertices.begin() + b_end, 0, [&](double acc, int v) {
+            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc;
         });
 
-        std::cout << "w_a: " << w_a << ", w_b: " << w_b << std::endl;
+        log(LogLevel::Debug) << "w_a: " << w_a << ", w_b: " << w_b << "\n";
 
         double addGainA = (w_a * std::log2(W_a / (double)(w_a + 1)));
         double addGainB = isClose(W_a, 0) ? 0 : (w_b * std::log2(W_b / (double)(w_b + 1)));
@@ -213,7 +213,7 @@ double computeMoveGainEntropy(convertgraph::bipartiteGraph& graph,
         gain = gain + (addGainA + addGainB);
         gain = gain - (removeGainA + removeGainB);
 
-        std::cout << "Current gain: " << gain << std::endl;
+        log(LogLevel::Debug) << "Current gain: " << gain << "\n";
     }
 
     if (std::isnan(gain) || std::isinf(gain)) {
@@ -241,7 +241,7 @@ void recursiveBisection(convertgraph::bipartiteGraph& graph,
 
     int mid = size / 2 + begin;
 
-    std::cout << "Initialize computing move gains for vertices in D_a and D_b" << std::endl;
+    log(LogLevel::Info) << "Initialize computing move gains for vertices in D_a and D_b\n";
     int iterationsWithSwap = 0;
 
     // Perform local optimization with a fixed number of iterations
@@ -273,14 +273,14 @@ void recursiveBisection(convertgraph::bipartiteGraph& graph,
         }
 
         if (!swapNeeded) {
-            std::cout << "No swaps needed, exiting early." << std::endl;
+            log(LogLevel::Info) << "No swaps needed, exiting early.\n";
             break; // No swaps needed, we are done
         } else {
             iterationsWithSwap++;
         }
     }
 
-    std::cout << "begin: " << begin << " end: " << end << " mid: " << mid << " iterations with swap: " << iterationsWithSwap << std::endl;
+    log(LogLevel::Info) << "begin: " << begin << " end: " << end << " mid: " << mid << " iterations with swap: " << iterationsWithSwap << "\n";
     
     // Recurse on the two halves
     recursiveBisection(graph, vertices, begin, mid, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
@@ -310,9 +310,7 @@ std::vector<int> recursiveBisectionPrevious(convertgraph::bipartiteGraph& graph,
     D_a.assign(vertices.begin(), vertices.begin() + mid);
     D_b.assign(vertices.begin() + mid, vertices.end());
 
-    //std::cout << "Initialize computing move gains for vertices in D_a and D_b" << std::endl;
-
-    std::cout << "Initialize computing move gains for vertices in D_a and D_b" << std::endl;
+    log(LogLevel::Info) << "Initialize computing move gains for vertices in D_a and D_b\n";
     int iterationsWithSwap = 0;
 
     for (int it = 0; it < maxIterations; ++it) {
@@ -339,30 +337,29 @@ std::vector<int> recursiveBisectionPrevious(convertgraph::bipartiteGraph& graph,
         }
 
         if (!swapNeeded) {
-            //std::cout << "No swaps needed, exiting early." << std::endl;
+            log(LogLevel::Info) << "No swaps needed, exiting early.\n";
             break; // No swaps needed, we are done
         } else {
             iterationsWithSwap++;
         }
 
-        // print gainsA and gainsB for iterations
-        if (it < 5) { // Only print for the first few iterations
-            std::cout << "D_a size: " << D_a.size() << ", D_b size: " << D_b.size() << std::endl;
-            std::cout << "Iteration " << it << ":" << std::endl;
-            std::cout << "Gains A: ";
+        if (it < 5) {
+            log(LogLevel::Debug) << "D_a size: " << D_a.size() << ", D_b size: " << D_b.size() << "\n";
+            log(LogLevel::Debug) << "Iteration " << it << ":\n";
+            log(LogLevel::Debug) << "Gains A: ";
             for (const auto& gain : gainsA) {
-                std::cout << gain.gain << " ";
+                log(LogLevel::Debug) << gain.gain << " ";
             }
-            std::cout << std::endl;
-            std::cout << "Gains B: ";
+            log(LogLevel::Debug) << "\n";
+            log(LogLevel::Debug) << "Gains B: ";
             for (const auto& gain : gainsB) {
-                std::cout << gain.gain << " ";
+                log(LogLevel::Debug) << gain.gain << " ";
             }
-            std::cout << std::endl;
+            log(LogLevel::Debug) << "\n";
         }
     }
 
-    std::cout << " iterations with swap: " << iterationsWithSwap << std::endl;
+    log(LogLevel::Info) << "iterations with swap: " << iterationsWithSwap << "\n";
     
     std::vector<int> newVerticesA = recursiveBisectionPrevious(graph, D_a, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
     std::vector<int> newVerticesB = recursiveBisectionPrevious(graph, D_b, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
@@ -375,7 +372,7 @@ std::vector<int> recursiveBisectionPrevious(convertgraph::bipartiteGraph& graph,
 
 double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices, 
                                                     convertgraph::bipartiteGraph& graph, 
-                                                    std::vector<std::vector<double>>& demandMatrix,
+                                                    const std::vector<std::vector<double>>& demandMatrix,
                                                     int maxDepth,
                                                     int maxIterations,
                                                     OrderingLogger& logger) {
@@ -395,4 +392,4 @@ double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices,
 }
 
 
-} // namespace basic
+} // namespace graphBisection
