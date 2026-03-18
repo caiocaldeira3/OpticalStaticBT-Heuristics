@@ -7,8 +7,8 @@
 #include <numeric>
 
 #include <core/util.hh>
-#include <core/logging.hh>
-#include <core/log_level.hh>
+#include <core/bisectionRunRecord.hh>
+#include <core/logLevel.hh>
 #include <convertgraph.hh>
 
 
@@ -230,7 +230,7 @@ void recursiveBisection(convertgraph::bipartiteGraph& graph,
                         int d,
                         int maxDepth,
                         int maxIterations,
-                        OrderingLogger& logger,
+                        BisectionRunRecord& record,
                         Func computeGainFunc) {
      
     int size = end - begin;
@@ -283,8 +283,8 @@ void recursiveBisection(convertgraph::bipartiteGraph& graph,
     log(LogLevel::Info) << "begin: " << begin << " end: " << end << " mid: " << mid << " iterations with swap: " << iterationsWithSwap << "\n";
     
     // Recurse on the two halves
-    recursiveBisection(graph, vertices, begin, mid, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
-    recursiveBisection(graph, vertices, mid, end, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
+    recursiveBisection(graph, vertices, begin, mid, d + 1, maxDepth, maxIterations, record, computeGainFunc);
+    recursiveBisection(graph, vertices, mid, end, d + 1, maxDepth, maxIterations, record, computeGainFunc);
 
     return;
 }
@@ -295,7 +295,7 @@ std::vector<int> recursiveBisectionPrevious(convertgraph::bipartiteGraph& graph,
                                             int d,
                                             int maxDepth,
                                             int maxIterations,
-                                            OrderingLogger& logger,
+                                            BisectionRunRecord& record,
                                             Func computeGainFunc) {
 
     // std::cout << "Recursive bisection at depth: " << d << ", vertices size: " << vertices.size() << std::endl;                                    
@@ -361,8 +361,8 @@ std::vector<int> recursiveBisectionPrevious(convertgraph::bipartiteGraph& graph,
 
     log(LogLevel::Info) << "iterations with swap: " << iterationsWithSwap << "\n";
     
-    std::vector<int> newVerticesA = recursiveBisectionPrevious(graph, D_a, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
-    std::vector<int> newVerticesB = recursiveBisectionPrevious(graph, D_b, d + 1, maxDepth, maxIterations, logger, computeGainFunc);
+    std::vector<int> newVerticesA = recursiveBisectionPrevious(graph, D_a, d + 1, maxDepth, maxIterations, record, computeGainFunc);
+    std::vector<int> newVerticesB = recursiveBisectionPrevious(graph, D_b, d + 1, maxDepth, maxIterations, record, computeGainFunc);
     vertices.clear();
     vertices.insert(vertices.end(), newVerticesA.begin(), newVerticesA.end());
     vertices.insert(vertices.end(), newVerticesB.begin(), newVerticesB.end());
@@ -375,10 +375,10 @@ double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices,
                                                     const std::vector<std::vector<double>>& demandMatrix,
                                                     int maxDepth,
                                                     int maxIterations,
-                                                    OrderingLogger& logger) {
+                                                    BisectionRunRecord& record) {
     int nVertices = vertices.size();
                                                         
-    std::vector<int> reorder = recursiveBisectionPrevious(graph, vertices, 0 /*current level*/, maxDepth, maxIterations, logger, graphBisection::computeMoveGainPrevious);                                                    
+    std::vector<int> reorder = recursiveBisectionPrevious(graph, vertices, 0 /*current level*/, maxDepth, maxIterations, record, graphBisection::computeMoveGainPrevious);                                                    
 
     auto newDemandMatrix = reconfigureDemandMatrix(reorder, demandMatrix);
 
@@ -390,7 +390,7 @@ double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices,
     buildBalancedBinaryTree(canonicalOrder, tree, {0, nVertices}, -1);
 
     double totalCost = treeCost(tree, demandMatrix);
-    logger.logTotalCost(totalCost);
+    record.recordTotalCost(totalCost);
     return totalCost;
 }
 

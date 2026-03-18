@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/util.hh>
-#include <core/logging.hh>
+#include <core/bisectionRunRecord.hh>
 #include <treebuilders/optbst.hh>
 #include <treebuilders/greedy.hh>
 
@@ -74,7 +74,7 @@ struct Ordering_t {
     std::function<void(
         const std::vector<std::vector<double>>&,
         std::vector<int>&,
-        VectorLimits_t,int,bool,OrderingLogger&,int
+        VectorLimits_t,int,bool,BisectionRunRecord&,int
     )> func;
     std::vector<int> vertices;
 };
@@ -89,7 +89,7 @@ void runOrdering (
     bool bounded, bool parallelize, int nVertices,
     const std::string& baseFolder, int testNumber, int maxIterations = 20
 ) {
-    OrderingLogger logger(maxIterations);
+    BisectionRunRecord record(RunConfig{.maxIterations = maxIterations, .outputDirectory = baseFolder + flag});
 
     std::cout << label << std::endl;
     VectorLimits_t limits{0, nVertices};
@@ -97,7 +97,7 @@ void runOrdering (
         static_cast<int>(std::ceil(std::log(nVertices)/std::log(2))) + 1: INF
     );
     const clock_t beginTime = std::clock();
-    reorderFn(demandMatrix, orderVec, limits, maxDepth, parallelize, logger, maxIterations);
+    reorderFn(demandMatrix, orderVec, limits, maxDepth, parallelize, record, maxIterations);
     double secs = double(std::clock() - beginTime) / CLOCKS_PER_SEC;
     std::cout << "\tTime Spent: " << secs << std::endl;
 
@@ -110,15 +110,5 @@ void runOrdering (
     }
     orderingFile << std::endl;
 
-    std::ofstream orderingMetricsFile(
-        baseFolder + flag + "/metrics.out", std::ios_base::app
-    );
-    if (testNumber == 0) {
-        orderingMetricsFile << "max-it-occ,avg-iterations,avg-swapped-pairs,avg-cost-gain" << std::endl;
-    }
-
-    orderingMetricsFile << logger.getNumberOfMaxIterationsOccurences() << ","
-        << logger.getAverageNumIterationsPerRecursion() << ","
-        << logger.getAverageSwappedPairsPerIteration() << ","
-        << logger.getAverageCostGainPerRecursion() << std::endl;
+    record.appendMetrics();
 }

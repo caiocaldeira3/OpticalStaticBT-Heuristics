@@ -28,9 +28,10 @@ add_executable(work ${SRCDIR}/workload.cc)
 add_executable(run ${SRCDIR}/run.cc)
 
 # === Test executable ===
-add_executable(run_tests 
+add_executable(run_tests
 	${TSTDIR}/hello_test.cc
 	${TSTDIR}/include/test_convertgraph.cc
+	${TSTDIR}/include/test_bisectionRunRecord.cc
 )
 
 # === Link GoogleTest to Executable ===

@@ -10,8 +10,8 @@
 
 #include <algorithm.hh>
 #include <argparse/argparse.hh>
-#include <core/logging.hh>
-#include <core/log_level.hh>
+#include <core/bisectionRunRecord.hh>
+#include <core/logLevel.hh>
 #include <treebuilders/optbst.hh>
 #include <treebuilders/greedy.hh>
 #include <convertgraph.hh>
@@ -149,7 +149,13 @@ int main (int argc, char* argv[]) {
     // create output directory if it does not exist
     std::filesystem::create_directories(options.outputDirectory);
 
-    OrderingLogger logger(options.outputDirectory);
+    BisectionRunRecord record(RunConfig{
+        .algorithm       = options.algorithm,
+        .datasetName     = options.datasetName,
+        .maxIterations   = options.maxIterations,
+        .maxDepth        = options.maxDepth,
+        .outputDirectory = options.outputDirectory,
+    });
 
     // create a vector of vertices with size numVertices and fill it with indices from 0 to numVertices - 1
     int numVertices = static_cast<int>(demandMatrix.size());
@@ -160,21 +166,15 @@ int main (int argc, char* argv[]) {
                 << " with max depth: " << options.maxDepth
                 << " and max iterations: " << options.maxIterations << std::endl;
 
-    logger.setAlgorithm(options.algorithm);
-    logger.setMaxDepth(options.maxDepth);
-    logger.setMaxIterations(options.maxIterations);
-    logger.setDatasetName(options.datasetName);
-
     double totalCost = graphBisection::computeBalancedBinaryTreeCostAfterReordering(
-        vertices, graph, demandMatrix, options.maxDepth, options.maxIterations, logger
+        vertices, graph, demandMatrix, options.maxDepth, options.maxIterations, record
     );
-    logger.logTotalCost(totalCost);
     std::cout << "Total cost after reordering: " << totalCost << std::endl;
 
     // compute the cost of the MLogA algorithm
     double mlogACost = algorithm::computeMLogACost(vertices, demandMatrix);
     std::cout << "MLogA cost: " << mlogACost << std::endl;
-    logger.logMLogACost(mlogACost);
+    record.recordMLogACost(mlogACost);
 
-    logger.pushToFile();
+    record.appendToCsv();
 }

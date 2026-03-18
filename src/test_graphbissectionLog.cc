@@ -160,9 +160,9 @@ void test_recursiveBisection_basic() {
     int maxIterations = 3;
 
     // create OrderingLogger instance
-    OrderingLogger logger("basic", maxIterations, maxDepth, "output");
+    BisectionRunRecord record(RunConfig{.algorithm = "basic", .maxIterations = maxIterations, .maxDepth = maxDepth, .outputDirectory = "output"});
 
-    basic::recursiveBisection(graph, vertices, 0, vertices.size() - 1, 0, maxDepth, maxIterations, logger, basic::computeMoveGain);
+    basic::recursiveBisection(graph, vertices, 0, vertices.size() - 1, 0, maxDepth, maxIterations, record, basic::computeMoveGain);
     assert(vertices.size() == 4);
 
     // Should contain all original vertices
@@ -194,9 +194,9 @@ void test_recursiveBisectionWeighted_basic() {
     int maxIterations = 3;
 
     // create OrderingLogger instance
-    OrderingLogger logger("basic", maxIterations, maxDepth, "output");
+    BisectionRunRecord record(RunConfig{.algorithm = "basic", .maxIterations = maxIterations, .maxDepth = maxDepth, .outputDirectory = "output"});
 
-    basic::recursiveBisection(graph, vertices, 0, vertices.size() - 1, 0, maxDepth, maxIterations, logger, basic::computeMoveGainWeighted);
+    basic::recursiveBisection(graph, vertices, 0, vertices.size() - 1, 0, maxDepth, maxIterations, record, basic::computeMoveGainWeighted);
     assert(vertices.size() == 4);
 
     // Should contain all original vertices

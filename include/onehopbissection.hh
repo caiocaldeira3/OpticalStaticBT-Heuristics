@@ -6,7 +6,7 @@
 #include <algorithm>
 
 #include <core/util.hh>
-#include <core/logging.hh>
+#include <core/bisectionRunRecord.hh>
 
 
 namespace onehop {
@@ -88,7 +88,7 @@ namespace onehop {
 
     void graphReordering (
         const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
-        const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, OrderingLogger& logger,
+        const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, BisectionRunRecord& record,
         int maxIterations = 20
     ) {
         if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 3)
@@ -137,14 +137,14 @@ namespace onehop {
                 swappedVertices.insert(rightGain.vIdx);
             }
 
-            logger.logSwappedPairs(numSwapped);
-            logger.logCostGain(totalCostGain);
+            record.recordSwappedPairs(numSwapped);
+            record.recordCostGain(totalCostGain);
 
             if (swappedVertices.size() == 0)
                 break;
         }
 
-        logger.logNumIterations(numIterations);
+        record.recordIterationCount(numIterations);
 
         if (parallelize) {
             throw std::runtime_error("Parallelization not implemented yet due to race condition on logger.");
@@ -155,7 +155,7 @@ namespace onehop {
                     #pragma omp task
                     graphReordering(
                         demandMatrix, vertices, limits, maxDepth - 1, parallelize,
-                        logger, maxIterations
+                        record, maxIterations
                     );
                 }
                 #pragma omp taskwait
@@ -164,11 +164,11 @@ namespace onehop {
         } else {
             graphReordering(
                 demandMatrix, vertices, leftLimits, maxDepth - 1,
-                parallelize, logger, maxIterations
+                parallelize, record, maxIterations
             );
             graphReordering(
                 demandMatrix, vertices, rightLimits, maxDepth - 1,
-                parallelize,  logger, maxIterations
+                parallelize,  record, maxIterations
             );
         }
     }

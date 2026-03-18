@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include <core/util.hh>
+#include <core/bisectionRunRecord.hh>
 
 
 namespace basic {
@@ -56,7 +57,7 @@ double computeCostGainBasic (
 
 void graphReordering (
     const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
-    const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, OrderingLogger& logger,
+    const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, BisectionRunRecord& record,
     int maxIterations = 20
 ) {
     if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 2)
@@ -99,11 +100,11 @@ void graphReordering (
 
         std::swap(vertices[leftIdx], vertices[rightIdx]);
 
-        logger.logSwappedPairs(1);
-        logger.logCostGain(costGains[bestCostGainIdx].costGain);
+        record.recordSwappedPairs(1);
+        record.recordCostGain(costGains[bestCostGainIdx].costGain);
     }
 
-    logger.logNumIterations(numIterations);
+    record.recordIterationCount(numIterations);
 
     if (parallelize) {
         throw std::runtime_error("Parallelization not implemented yet due to race condition on logger.");
@@ -114,7 +115,7 @@ void graphReordering (
                 #pragma omp task
                 graphReordering(
                     demandMatrix, vertices, limits, maxDepth - 1,
-                    parallelize, logger, maxIterations
+                    parallelize, record, maxIterations
                 );
             }
             #pragma omp taskwait
@@ -123,11 +124,11 @@ void graphReordering (
     } else {
         graphReordering(
             demandMatrix, vertices, leftLimits, maxDepth - 1,
-            parallelize, logger, maxIterations
+            parallelize, record, maxIterations
         );
         graphReordering(
             demandMatrix, vertices, rightLimits, maxDepth - 1,
-            parallelize, logger, maxIterations
+            parallelize, record, maxIterations
         );
 
     }
