@@ -177,6 +177,4 @@ int main (int argc, char* argv[]) {
     logger.logMLogACost(mlogACost);
 
     logger.pushToFile();
-
-
 }

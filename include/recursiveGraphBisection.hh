@@ -378,16 +378,19 @@ double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices,
                                                     OrderingLogger& logger) {
     int nVertices = vertices.size();
                                                         
-    //recursiveBisection(graph, vertices, 0 /*begin*/, nVertices/*end*/, 0 /*current level*/, maxDepth, maxIterations, logger, basic::computeMoveGain);
+    std::vector<int> reorder = recursiveBisectionPrevious(graph, vertices, 0 /*current level*/, maxDepth, maxIterations, logger, graphBisection::computeMoveGainPrevious);                                                    
 
-    std::vector<int> reorder = recursiveBisectionPrevious(graph, vertices, 0, maxDepth, maxIterations, logger, graphBisection::computeMoveGainPrevious);                                                    
+    auto newDemandMatrix = reconfigureDemandMatrix(reorder, demandMatrix);
+
+    // Build tree with canonical 0..n-1 ordering (positions, not original IDs)
+    std::vector<int> canonicalOrder(nVertices);
+    std::iota(canonicalOrder.begin(), canonicalOrder.end(), 0);
 
     std::vector<std::vector<int>> tree(nVertices, std::vector<int>());
-    buildBalancedBinaryTree(vertices, tree, {0, nVertices}, -1);
+    buildBalancedBinaryTree(canonicalOrder, tree, {0, nVertices}, -1);
 
     double totalCost = treeCost(tree, demandMatrix);
     logger.logTotalCost(totalCost);
-
     return totalCost;
 }
 
