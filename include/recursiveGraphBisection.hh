@@ -1,398 +1,280 @@
 #pragma once
 
-#include <set>
-#include <memory>
+#include <cmath>
+#include <iterator>
 #include <vector>
-#include <algorithm>
-#include <numeric>
 
-#include <core/util.hh>
-#include <core/bisectionRunRecord.hh>
-#include <core/logLevel.hh>
-#include <convertgraph.hh>
+#include "tbb/enumerable_thread_specific.h"
+#include "tbb/parallel_invoke.h"
+#include "tbb/task_group.h"
 
+#include "util/compilerAttribute.hh"
+#include "util/forwardIndex.hh"
+#include "util/log.hh"
+#include "util/singleInitVector.hh"
 
-namespace graphBisection {
+namespace pisa {
+const Log2<4096> log2;
 
-struct Gain {
-    double gain;
-    int vertexIdx;
+namespace bp {
+
+    using ThreadLocalGains = tbb::enumerable_thread_specific<singleInitVector<double>>;
+    using ThreadLocalDegrees = tbb::enumerable_thread_specific<singleInitVector<size_t>>;
+
+    struct ThreadLocal {
+        ThreadLocalGains gains;
+        ThreadLocalDegrees left_degrees;
+        ThreadLocalDegrees right_degrees;
+    };
+
+    ALWAYSINLINE double expb(double logn1, double logn2, size_t deg1, size_t deg2) {
+        return static_cast<double>(deg1) * logn1
+             - static_cast<double>(deg1) * log2(static_cast<double>(deg1) + 1.0)
+             + static_cast<double>(deg2) * logn2
+             - static_cast<double>(deg2) * log2(static_cast<double>(deg2) + 1.0);
+    };
+
+    template <typename ThreadLocalContainer>
+    [[nodiscard]] ALWAYSINLINE auto&
+    clearOrInit(ThreadLocalContainer&& container, std::size_t size) {
+        bool exists = false;
+        auto& ref = container.local(exists);
+        if (exists) {
+            ref.clear();
+        } else {
+            ref.resize(size);
+        }
+        return ref;
+    }
+
+}  // namespace bp
+
+template <class Iterator>
+struct verticePartition;
+
+template <class Iterator>
+class verticeRange {
+  public:
+    using value_type = typename std::iterator_traits<Iterator>::value_type;
+
+    verticeRange(
+        Iterator first,
+        Iterator last,
+        std::reference_wrapper<const forwardIndex> fwdidx,
+        std::reference_wrapper<std::vector<double>> gains
+    )
+        : m_first(first), m_last(last), m_fwdidx(fwdidx), m_gains(gains) {}
+
+    Iterator begin() { return m_first; }
+    Iterator end() { return m_last; }
+    std::ptrdiff_t size() const { return std::distance(m_first, m_last); }
+
+    ALWAYSINLINE verticePartition<Iterator> split() const {
+        Iterator mid = std::next(m_first, size() / 2);
+        return {
+            verticeRange(m_first, mid, m_fwdidx, m_gains),
+            verticeRange(mid, m_last, m_fwdidx, m_gains),
+            term_count()
+        };
+    }
+
+    ALWAYSINLINE verticeRange operator()(std::ptrdiff_t left, std::ptrdiff_t right) const {
+        assert(left < right);
+        assert(right <= size());
+        return verticeRange(std::next(m_first, left), std::next(m_first, right), m_fwdidx, m_gains);
+    }
+
+    std::size_t term_count() const { return m_fwdidx.get().termCount(); }
+    std::vector<uint32_t> terms(value_type vertice) const {
+        return m_fwdidx.get().terms(vertice);
+    }
+    double gain(value_type vertice) const { return m_gains.get()[vertice]; }
+    double& gain(value_type vertice) { return m_gains.get()[vertice]; }
+
+    auto by_gain() {
+        return [this](const value_type& lhs, const value_type& rhs) {
+            return m_gains.get()[lhs] > m_gains.get()[rhs];
+        };
+    }
+
+  private:
+    Iterator m_first;
+    Iterator m_last;
+    std::reference_wrapper<const forwardIndex> m_fwdidx;
+    std::reference_wrapper<std::vector<double>> m_gains;
 };
 
-bool compareCostGainDecreasing (const Gain& a, const Gain& b) {
-    return a.gain > b.gain;
+template <class Iterator>
+struct verticePartition {
+    verticeRange<Iterator> left;
+    verticeRange<Iterator> right;
+    size_t term_count;
+
+    std::ptrdiff_t size() const { return left.size() + right.size(); }
+};
+
+template <class Iterator>
+void computeDegrees(verticeRange<Iterator>& range, singleInitVector<size_t>& deg_map) {
+    for (const auto& vertice: range) {
+        auto terms = range.terms(vertice);
+        auto deg_map_inc = [&](const auto& t) { deg_map.set(t, deg_map[t] + 1); };
+        std::for_each(terms.begin(), terms.end(), deg_map_inc);
+    }
 }
 
-double computeMoveGainPrevious(convertgraph::bipartiteGraph& graph, 
-                        int vertex, 
-                        std::vector<int>& D_a, 
-                        std::vector<int>& D_b) {
-    double gain = 0.0;
-
-    log(LogLevel::Debug) << "Computing move gain for vertex: " << vertex << "\n";
-
-    for (int t = 0; t < graph.size(); ++t) {
-        log(LogLevel::Debug) << "Checking graph at term: " << t << "\n";
-        if (graph[t].find(vertex) == graph[t].end()) {
-            continue;
-        }
-        log(LogLevel::Debug) << "Vertex " << vertex << " found in graph at term " << t << "\n";
-
-        int n_Da = D_a.size();
-        int n_Db = D_b.size();
-
-        int da = std::count_if(D_a.begin(), D_a.end(), [&](int v) { return graph[t].find(v) != graph[t].end(); });
-        int db = std::count_if(D_b.begin(), D_b.end(), [&](int v) { return graph[t].find(v) != graph[t].end(); });
-
-        log(LogLevel::Debug) << "da: " << da << ", db: " << db << "\n";
-
-        double addGainA = (da * std::log2(n_Da / (double)(da + 1)));
-        double addGainB = (db * std::log2(n_Db / (double)(db + 1)));
-        double removeGainA = ((da - 1) * std::log2((n_Da / (double)da)));
-        double removeGainB = ((db + 1) * std::log2((n_Db / (double)(db + 2))));
-
-        gain = gain + (addGainA + addGainB);
-        gain = gain - (removeGainA + removeGainB);
-
-        log(LogLevel::Debug) << "Current gain: " << gain << "\n";
-    }
-
-    if (std::isnan(gain) || std::isinf(gain)) {
-        throw std::runtime_error("Cost gain is NaN or Inf.");
-    }
-
-    return gain;
-}
-
-double computeMoveGain(convertgraph::bipartiteGraph& graph, 
-                        int vertex,
-                        std::vector<int>& vertices,
-                        int a_begin, int a_end,
-                        int b_begin, int b_end) {
-    double gain = 0.0;
-
-    log(LogLevel::Debug) << "Computing move gain for vertex: " << vertex << "\n";
-
-    int n_Da = a_end - a_begin;
-    int n_Db = b_end - b_begin;
-
-    log(LogLevel::Debug) << "n_Da: " << n_Da << ", n_Db: " << n_Db << "\n";
-
-    for (int t = 0; t < graph.size(); ++t) {
-        log(LogLevel::Debug) << "Checking graph at term: " << t << "\n";
-        if (graph[t].find(vertex) == graph[t].end()) {
-            continue;
-        }
-        log(LogLevel::Debug) << "Vertex " << vertex << " found in graph at term " << t << "\n";
-
-        int da = std::count_if(vertices.begin() + a_begin, vertices.begin() + a_end, [&](int v) {
-            return graph[t].find(v) != graph[t].end();
-        });
-        int db = std::count_if(vertices.begin() + b_begin, vertices.begin() + b_end, [&](int v) {
-            return graph[t].find(v) != graph[t].end();
-        });
-
-        log(LogLevel::Debug) << "da: " << da << ", db: " << db << "\n";
-
-        double addGainA = (da * std::log2(n_Da / (double)(da + 1)));
-        double addGainB = (db * std::log2(n_Db / (double)(db + 1)));
-        double removeGainA = ((da - 1) * std::log2((n_Da / (double)da)));
-        double removeGainB = ((db + 1) * std::log2((n_Db / (double)(db + 2))));
-
-        gain = gain + (addGainA + addGainB);
-        gain = gain - (removeGainA + removeGainB);
-
-        log(LogLevel::Debug) << "Current gain: " << gain << "\n";
-    }
-
-    if (std::isnan(gain) || std::isinf(gain)) {
-        throw std::runtime_error("Cost gain is NaN or Inf.");
-    }
-
-    return gain;
-}
-
-double computeMoveGainWeighted(convertgraph::bipartiteGraph& graph, 
-                                int vertex, 
-                                std::vector<int>& vertices,
-                                int a_begin, int a_end,
-                                int b_begin, int b_end) {
-    double gain = 0.0;
-
-    log(LogLevel::Debug) << "Computing move gain for vertex: " << vertex << "\n";
-
-    int n_Da = a_end - a_begin;
-    int n_Db = b_end - b_begin;
-
-    log(LogLevel::Debug) << "n_Da: " << n_Da << ", n_Db: " << n_Db << "\n";
-
-    for (int t = 0; t < graph.size(); ++t) {
-        log(LogLevel::Debug) << "Checking graph at term: " << t << "\n";
-
-        if (graph[t].find(vertex) == graph[t].end()) {
-            continue;
-        }
-        log(LogLevel::Debug) << "Vertex " << vertex << " found in graph at term " << t << "\n";
-
-        int da = std::count_if(vertices.begin() + a_begin, vertices.begin() + a_end, [&](int v) {
-            return graph[t].find(v) != graph[t].end();
-        });
-        int db = std::count_if(vertices.begin() + b_begin, vertices.begin() + b_end, [&](int v) {
-            return graph[t].find(v) != graph[t].end();
-        });
-
-        double w_a = std::accumulate(vertices.begin() + a_begin, vertices.begin() + a_end, 0, [&](double acc, int v) {
-            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc;
-        });
-        double w_b = std::accumulate(vertices.begin() + b_begin, vertices.begin() + b_end, 0, [&](double acc, int v) {
-            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc;
-        });
-        log(LogLevel::Debug) << "da: " << da << ", db: " << db << "\n";
-
-        double addGainA = (w_a * std::log2(n_Da / (double)(da + 1)));
-        double addGainB = (w_b * std::log2(n_Db / (double)(db + 1)));
-        double removeGainA = (w_a - graph[t].at(vertex)) * std::log2(n_Da / (double)(da));
-        double removeGainB = (w_b + graph[t].at(vertex)) * std::log2(n_Db / (double)(db + 2));
-
-        gain = gain + (addGainA + addGainB);
-        gain = gain - (removeGainA + removeGainB);
-
-        log(LogLevel::Debug) << "Current gain: " << gain << "\n";
-    }
-
-    if (std::isnan(gain) || std::isinf(gain)) {
-        throw std::runtime_error("Cost gain is NaN or Inf.");
-    }
-
-    return gain;
-}
-
-double computeMoveGainEntropy(convertgraph::bipartiteGraph& graph, 
-                              int vertex, 
-                              std::vector<int>& vertices,
-                              int a_begin, int a_end,
-                              int b_begin, int b_end) {
-    double gain = 0.0;
-
-    double W_a = 0, W_b = 0;
-    for (int t = 0; t < graph.size(); ++t) {
-        for (int v = a_begin; v < a_end; ++v) {
-            W_a += graph[t].find(v) != graph[t].end() ? graph[t].at(v) : W_a;
-        }
-
-        for (int v = b_begin; v < b_end; ++v) {
-            W_b += graph[t].find(v) != graph[t].end() ? graph[t].at(v) : W_a;
-        }
-    }    
-
-    log(LogLevel::Debug) << "Computing move gain for vertex: " << vertex << "\n";
-
-    for (int t = 0; t < graph.size(); ++t) {
-        log(LogLevel::Debug) << "Checking graph at term: " << t << "\n";
-
-        if (graph[t].find(vertex) == graph[t].end()) {
-            continue;
-        }
-        log(LogLevel::Debug) << "Vertex " << vertex << " found in graph at term " << t << "\n";
-        log(LogLevel::Debug) << "W_a: " << W_a << ", W_b: " << W_b << "\n";
-
-        double w_a = std::accumulate(vertices.begin() + a_begin, vertices.begin() + a_end, 0, [&](double acc, int v) {
-            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc;
-        });
-        double w_b = std::accumulate(vertices.begin() + b_begin, vertices.begin() + b_end, 0, [&](double acc, int v) {
-            return graph[t].find(v) != graph[t].end() ? acc + graph[t].at(v) : acc;
-        });
-
-        log(LogLevel::Debug) << "w_a: " << w_a << ", w_b: " << w_b << "\n";
-
-        double addGainA = (w_a * std::log2(W_a / (double)(w_a + 1)));
-        double addGainB = isClose(W_a, 0) ? 0 : (w_b * std::log2(W_b / (double)(w_b + 1)));
-        double removeGainA = (w_a - graph[t].at(vertex)) * std::log2(W_a / (double)(w_a));
-        double removeGainB = isClose(W_b, 0) ? 0 : (w_b + graph[t].at(vertex)) * std::log2(W_b / (double)(w_b + graph[t].at(vertex)));
-
-        gain = gain + (addGainA + addGainB);
-        gain = gain - (removeGainA + removeGainB);
-
-        log(LogLevel::Debug) << "Current gain: " << gain << "\n";
-    }
-
-    if (std::isnan(gain) || std::isinf(gain)) {
-        throw std::runtime_error("Cost gain is NaN or Inf.");
-    }
-
-    return gain;
-}
-
-template<typename Func>
-void recursiveBisection(convertgraph::bipartiteGraph& graph, 
-                        std::vector<int>& vertices,
-                        int begin, int end,
-                        int d,
-                        int maxDepth,
-                        int maxIterations,
-                        BisectionRunRecord& record,
-                        Func computeGainFunc) {
-     
-    int size = end - begin;
-    
-    if (size <= 1 || d >= maxDepth) {
-        return; // Base case: no further bisection possible
-    }
-
-    int mid = size / 2 + begin;
-
-    log(LogLevel::Info) << "Initialize computing move gains for vertices in D_a and D_b\n";
-    int iterationsWithSwap = 0;
-
-    // Perform local optimization with a fixed number of iterations
-    for (int it = 0; it < maxIterations; ++it) {
-        std::vector<Gain> gainsA, gainsB;
-
-        // Compute gains for vertices in D_a
-        for (int i = begin; i < mid; ++i) {
-            int v = vertices[i];
-            gainsA.push_back({computeGainFunc(graph, v, vertices, begin, mid, mid, end), i});
-        }
-
-        // Compute gains for vertices in D_b
-        for (int i = mid; i < end; ++i) {
-            int v = vertices[i];
-            gainsB.push_back({computeGainFunc(graph, v, vertices, mid, end, begin, mid), i});
-        }
-
-        // Sort gains in decreasing order
-        std::sort(gainsA.begin(), gainsA.end(), compareCostGainDecreasing);
-        std::sort(gainsB.begin(), gainsB.end(), compareCostGainDecreasing);
-
-        // Perform swaps based on positive gains
-        bool swapNeeded = false;
-        for (int i = 0; i < std::min(gainsA.size(), gainsB.size()); ++i) {
-            if (gainsA[i].gain + gainsB[i].gain <= 0) { break; }
-            std::swap(vertices[gainsA[i].vertexIdx], vertices[gainsB[i].vertexIdx]);
-            swapNeeded = true;
-        }
-
-        if (!swapNeeded) {
-            log(LogLevel::Info) << "No swaps needed, exiting early.\n";
-            break; // No swaps needed, we are done
-        } else {
-            iterationsWithSwap++;
-        }
-    }
-
-    log(LogLevel::Info) << "begin: " << begin << " end: " << end << " mid: " << mid << " iterations with swap: " << iterationsWithSwap << "\n";
-    
-    // Recurse on the two halves
-    recursiveBisection(graph, vertices, begin, mid, d + 1, maxDepth, maxIterations, record, computeGainFunc);
-    recursiveBisection(graph, vertices, mid, end, d + 1, maxDepth, maxIterations, record, computeGainFunc);
-
-    return;
-}
-
-template<typename Func>
-std::vector<int> recursiveBisectionPrevious(convertgraph::bipartiteGraph& graph, 
-                                            std::vector<int>& vertices,
-                                            int d,
-                                            int maxDepth,
-                                            int maxIterations,
-                                            BisectionRunRecord& record,
-                                            Func computeGainFunc) {
-
-    // std::cout << "Recursive bisection at depth: " << d << ", vertices size: " << vertices.size() << std::endl;                                    
-
-    if (vertices.size() <= 1 || d >= maxDepth) {
-        return vertices; // Base case: no further bisection possible
-    }
-
-    int mid = vertices.size() / 2;
-
-    std::vector<int> D_a, D_b;
-    D_a.assign(vertices.begin(), vertices.begin() + mid);
-    D_b.assign(vertices.begin() + mid, vertices.end());
-
-    log(LogLevel::Info) << "Initialize computing move gains for vertices in D_a and D_b\n";
-    int iterationsWithSwap = 0;
-
-    for (int it = 0; it < maxIterations; ++it) {
-        std::vector<Gain> gainsA, gainsB;
-
-        for (int i = 0; i < D_a.size(); ++i) {
-            int v = D_a[i];
-            gainsA.push_back({computeGainFunc(graph, v, D_a, D_b), i});
-        }
-
-        for (int i = 0; i < D_b.size(); ++i) {
-            int v = D_b[i];
-            gainsB.push_back({computeGainFunc(graph, v, D_b, D_a), i});
-        }
-
-        std::sort(gainsA.begin(), gainsA.end(), compareCostGainDecreasing);
-        std::sort(gainsB.begin(), gainsB.end(), compareCostGainDecreasing);
-
-        bool swapNeeded = false;
-        for (int i = 0; i < mid; ++i) {
-            if (gainsA[i].gain + gainsB[i].gain <= 0) { continue; }
-            std::swap(D_a[gainsA[i].vertexIdx], D_b[gainsB[i].vertexIdx]);
-            swapNeeded = true;
-        }
-
-        if (!swapNeeded) {
-            log(LogLevel::Info) << "No swaps needed, exiting early.\n";
-            break; // No swaps needed, we are done
-        } else {
-            iterationsWithSwap++;
-        }
-
-        if (it < 5) {
-            log(LogLevel::Debug) << "D_a size: " << D_a.size() << ", D_b size: " << D_b.size() << "\n";
-            log(LogLevel::Debug) << "Iteration " << it << ":\n";
-            log(LogLevel::Debug) << "Gains A: ";
-            for (const auto& gain : gainsA) {
-                log(LogLevel::Debug) << gain.gain << " ";
+template <bool isLikelyCached = true, typename Iter>
+void computeMoveGainsCaching(
+    verticeRange<Iter>& range,
+    const std::ptrdiff_t from_n,
+    const std::ptrdiff_t to_n,
+    const singleInitVector<size_t>& from_lex,
+    const singleInitVector<size_t>& to_lex,
+    bp::ThreadLocal& thread_local_data
+) {
+    const auto logn1 = log2(from_n);
+    const auto logn2 = log2(to_n);
+
+    auto& gain_cache = bp::clearOrInit(thread_local_data.gains, from_lex.size());
+    auto computeVerticeGain = [&](auto& d) {
+        double gain = 0.0;
+        auto terms = range.terms(d);
+        for (const auto& t: terms) {
+            if constexpr (isLikelyCached) {  // NOLINT(readability-braces-around-statements)
+                if (not gain_cache.has_value(t)) [[unlikely]] {
+                    const auto& from_deg = from_lex[t];
+                    const auto& to_deg = to_lex[t];
+                    const auto term_gain = bp::expb(logn1, logn2, from_deg, to_deg)
+                        - bp::expb(logn1, logn2, from_deg - 1, to_deg + 1);
+                    gain_cache.set(t, term_gain);
+                }
+            } else {
+                if (not gain_cache.has_value(t)) [[likely]] {
+                    const auto& from_deg = from_lex[t];
+                    const auto& to_deg = to_lex[t];
+                    const auto term_gain = bp::expb(logn1, logn2, from_deg, to_deg)
+                        - bp::expb(logn1, logn2, from_deg - 1, to_deg + 1);
+                    gain_cache.set(t, term_gain);
+                }
             }
-            log(LogLevel::Debug) << "\n";
-            log(LogLevel::Debug) << "Gains B: ";
-            for (const auto& gain : gainsB) {
-                log(LogLevel::Debug) << gain.gain << " ";
-            }
-            log(LogLevel::Debug) << "\n";
+            gain += gain_cache[t];
         }
+        range.gain(d) = gain;
+    };
+    std::for_each(range.begin(), range.end(), computeVerticeGain);
+}
+
+template <class Iterator, class GainF>
+void computeGains(
+    verticePartition<Iterator>& partition,
+    const degreeMapPair& degrees,
+    GainF gainFunction,
+    bp::ThreadLocal& thread_local_data
+) {
+    auto n1 = partition.left.size();
+    auto n2 = partition.right.size();
+    gainFunction(partition.left, n1, n2, degrees.left, degrees.right, thread_local_data);
+    gainFunction(partition.right, n2, n1, degrees.right, degrees.left, thread_local_data);
+}
+
+template <class Iterator>
+void swap(verticePartition<Iterator>& partition, degreeMapPair& degrees) {
+    auto left = partition.left;
+    auto right = partition.right;
+    auto lit = left.begin();
+    auto rit = right.begin();
+    for (; lit != left.end() && rit != right.end(); ++lit, ++rit) {
+        if (left.gain(*lit) + right.gain(*rit) <= 0) [[unlikely]] {
+            break;
+        }
+        {
+            auto terms = left.terms(*lit);
+            for (auto& term: terms) {
+                degrees.left.set(term, degrees.left[term] - 1);
+                degrees.right.set(term, degrees.right[term] + 1);
+            }
+        }
+        {
+            auto terms = right.terms(*rit);
+            for (auto& term: terms) {
+                degrees.left.set(term, degrees.left[term] + 1);
+                degrees.right.set(term, degrees.right[term] - 1);
+            }
+        }
+
+        std::iter_swap(lit, rit);
+    }
+}
+
+template <class Iterator, class GainF>
+void processPartition(
+    verticePartition<Iterator>& partition,
+    GainF gainFunction,
+    bp::ThreadLocal& thread_local_data,
+    int iterations = 20
+) {
+    auto& left_degree =
+        bp::clearOrInit(thread_local_data.left_degrees, partition.left.term_count());
+    auto& right_degree =
+        bp::clearOrInit(thread_local_data.right_degrees, partition.right.term_count());
+    computeDegrees(partition.left, left_degree);
+    computeDegrees(partition.right, right_degree);
+    degreeMapPair degrees{left_degree, right_degree};
+
+    for (int iteration = 0; iteration < iterations; ++iteration) {
+        computeGains(partition, degrees, gainFunction, thread_local_data);
+        tbb::parallel_invoke(
+            [&] {
+                std::sort(
+                    partition.left.begin(),
+                    partition.left.end(),
+                    partition.left.by_gain()
+                );
+            },
+            [&] {
+                std::sort(
+                    partition.right.begin(),
+                    partition.right.end(),
+                    partition.right.by_gain()
+                );
+            }
+        );
+        swap(partition, degrees);
+    }
+}
+
+template <class Iterator>
+void recursiveGraphBisection(
+    verticeRange<Iterator> vertices,
+    size_t depth,
+    int iterations,
+    size_t cache_depth,
+    std::shared_ptr<bp::ThreadLocal> thread_local_data = nullptr
+) {
+    if (thread_local_data == nullptr) {
+        thread_local_data = std::make_shared<bp::ThreadLocal>();
+    }
+    std::sort(vertices.begin(), vertices.end());
+    auto partition = vertices.split();
+    if (cache_depth >= 1) {
+        processPartition(partition, computeMoveGainsCaching<true, Iterator>, *thread_local_data, iterations);
+        --cache_depth;
+    } else {
+        processPartition(partition, computeMoveGainsCaching<false, Iterator>, *thread_local_data, iterations);
     }
 
-    log(LogLevel::Info) << "iterations with swap: " << iterationsWithSwap << "\n";
-    
-    std::vector<int> newVerticesA = recursiveBisectionPrevious(graph, D_a, d + 1, maxDepth, maxIterations, record, computeGainFunc);
-    std::vector<int> newVerticesB = recursiveBisectionPrevious(graph, D_b, d + 1, maxDepth, maxIterations, record, computeGainFunc);
-    vertices.clear();
-    vertices.insert(vertices.end(), newVerticesA.begin(), newVerticesA.end());
-    vertices.insert(vertices.end(), newVerticesB.begin(), newVerticesB.end());
-
-    return vertices;
+    if (depth > 1 && vertices.size() > 2) {
+        tbb::parallel_invoke(
+            [&, thread_local_data] {
+                recursiveGraphBisection(partition.left, depth - 1, iterations, cache_depth, thread_local_data);
+            },
+            [&, thread_local_data] {
+                recursiveGraphBisection(partition.right, depth - 1, iterations, cache_depth, thread_local_data);
+            }
+        );
+    } else {
+        std::sort(partition.left.begin(), partition.left.end());
+        std::sort(partition.right.begin(), partition.right.end());
+    }
 }
 
-double computeBalancedBinaryTreeCostAfterReordering(std::vector<int>& vertices, 
-                                                    convertgraph::bipartiteGraph& graph, 
-                                                    const std::vector<std::vector<double>>& demandMatrix,
-                                                    int maxDepth,
-                                                    int maxIterations,
-                                                    BisectionRunRecord& record) {
-    int nVertices = vertices.size();
-                                                        
-    std::vector<int> reorder = recursiveBisectionPrevious(graph, vertices, 0 /*current level*/, maxDepth, maxIterations, record, graphBisection::computeMoveGainPrevious);                                                    
-
-    auto newDemandMatrix = reconfigureDemandMatrix(reorder, demandMatrix);
-
-    // Build tree with canonical 0..n-1 ordering (positions, not original IDs)
-    std::vector<int> canonicalOrder(nVertices);
-    std::iota(canonicalOrder.begin(), canonicalOrder.end(), 0);
-
-    std::vector<std::vector<int>> tree(nVertices, std::vector<int>());
-    buildBalancedBinaryTree(canonicalOrder, tree, {0, nVertices}, -1);
-
-    double totalCost = treeCost(tree, demandMatrix);
-    record.recordTotalCost(totalCost);
-    return totalCost;
-}
-
-
-} // namespace graphBisection
+}  // namespace pisa

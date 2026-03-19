@@ -12,12 +12,12 @@
 namespace mloggapa {
     struct CostGain_t {
         double costGain;
-        int vIdx;
+        uint32_t vIdx;
     };
 
     struct NodeSectionInfo_t {
-        int sameNeighbors;
-        int othNeighBors;
+        uint32_t sameNeighbors;
+        uint32_t othNeighBors;
         double sameSumWeight;
         double othSumWeight;
     };
@@ -27,15 +27,15 @@ namespace mloggapa {
     }
 
     NodeSectionInfo_t computeVertexInfo (
-        int vIdx, const std::vector<std::vector<double>>& demandMatrix,
-        const std::vector<int>& vertices,
+        uint32_t vIdx, const std::vector<std::vector<double>>& demandMatrix,
+        const std::vector<uint32_t>& vertices,
         const VectorLimits_t& fromLimits, const VectorLimits_t& toLimits
     ) {
         NodeSectionInfo_t info = { 0, 0, 0, 0 };
-        int vertex = vertices[vIdx];
+        uint32_t vertex = vertices[vIdx];
 
-        for (int othIdx = fromLimits.leftLimit; othIdx < fromLimits.rightLimit; othIdx++) {
-            int othVertex = vertices[othIdx];
+        for (uint32_t othIdx = fromLimits.leftLimit; othIdx < fromLimits.rightLimit; othIdx++) {
+            uint32_t othVertex = vertices[othIdx];
             double weight = demandMatrix[vertex][othVertex];
             if (othVertex == vertex || isClose(weight, 0))
                 continue;
@@ -44,8 +44,8 @@ namespace mloggapa {
             info.sameSumWeight += weight;
         }
 
-        for (int othIdx = toLimits.leftLimit; othIdx < toLimits.rightLimit; othIdx++) {
-            int othVertex = vertices[othIdx];
+        for (uint32_t othIdx = toLimits.leftLimit; othIdx < toLimits.rightLimit; othIdx++) {
+            uint32_t othVertex = vertices[othIdx];
             double weight = demandMatrix[vertex][othVertex];
             if (othVertex == vertex || isClose(weight, 0))
                 continue;
@@ -58,17 +58,17 @@ namespace mloggapa {
     }
 
     CostGain_t computeCostGain (
-        int vIdx, const std::vector<std::vector<double>>& demandMatrix,
-        const std::vector<int>& vertices, const std::vector<NodeSectionInfo_t>& nodeSectionInfo,
+        uint32_t vIdx, const std::vector<std::vector<double>>& demandMatrix,
+        const std::vector<uint32_t>& vertices, const std::vector<NodeSectionInfo_t>& nodeSectionInfo,
         const VectorLimits_t& fromLimits, const VectorLimits_t& toLimits
     ) {
         double costGain = 0;
-        int nVertices = vertices.size();
-        int vertex = vertices[vIdx];
-        int nTo = toLimits.rightLimit - toLimits.leftLimit;
-        int nFrom = fromLimits.rightLimit - fromLimits.leftLimit;
+        uint32_t nVertices = vertices.size();
+        uint32_t vertex = vertices[vIdx];
+        uint32_t nTo = toLimits.rightLimit - toLimits.leftLimit;
+        uint32_t nFrom = fromLimits.rightLimit - fromLimits.leftLimit;
 
-        for (int tIdx = 0; tIdx < nVertices; tIdx++) {
+        for (uint32_t tIdx = 0; tIdx < nVertices; tIdx++) {
             if (demandMatrix[tIdx][vertex] == 0) {
                 continue;
             }
@@ -94,40 +94,40 @@ namespace mloggapa {
     }
 
     void graphReordering (
-        const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
-        const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, BisectionRunRecord& record,
-        int maxIterations = 20
+        const std::vector<std::vector<double>>& demandMatrix, std::vector<uint32_t>& vertices,
+        const VectorLimits_t& vectorLimits, uint32_t maxDepth, bool parallelize, BisectionRunRecord& record,
+        uint32_t maxIterations = 20
     ) {
         if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 3)
             return;
 
-        int numVertices = vertices.size();
+        uint32_t numVertices = vertices.size();
         std::vector<NodeSectionInfo_t> partitionInfo(numVertices);
-        int numIterations = 0;
-        int mid = (vectorLimits.leftLimit + vectorLimits.rightLimit) / 2;
+        uint32_t numIterations = 0;
+        uint32_t mid = (vectorLimits.leftLimit + vectorLimits.rightLimit) / 2;
         VectorLimits_t leftLimits = { vectorLimits.leftLimit, mid };
         VectorLimits_t rightLimits = { mid, vectorLimits.rightLimit };
 
         while (numIterations++ < maxIterations) {
-            for (int tIdx = 0; tIdx < numVertices; tIdx++) {
+            for (uint32_t tIdx = 0; tIdx < numVertices; tIdx++) {
                 partitionInfo[tIdx] = computeVertexInfo(
                     tIdx, demandMatrix, vertices, leftLimits, rightLimits
                 );
             }
 
-            int numSwapped = 0;
+            uint32_t numSwapped = 0;
             double totalCostGain = 0;
             std::vector<CostGain_t> leftGains, rightGains;
-            std::set<int> swappedVertices;
+            std::set<uint32_t> swappedVertices;
 
-            for (int leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
+            for (uint32_t leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
                 leftGains.push_back(computeCostGain(
                     leftIdx, demandMatrix, vertices, partitionInfo,
                     leftLimits, rightLimits
                 ));
             }
 
-            for (int rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
+            for (uint32_t rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
                 rightGains.push_back(computeCostGain(
                     rightIdx, demandMatrix, vertices, partitionInfo,
                     rightLimits, leftLimits
@@ -137,7 +137,7 @@ namespace mloggapa {
             std::sort(leftGains.begin(), leftGains.end(), compareCostGainDecreasing);
             std::sort(rightGains.begin(), rightGains.end(), compareCostGainDecreasing);
 
-            for (int gainIdx = 0; gainIdx < std::min(leftGains.size(), rightGains.size()); gainIdx++) {
+            for (uint32_t gainIdx = 0; gainIdx < std::min(leftGains.size(), rightGains.size()); gainIdx++) {
                 CostGain_t leftGain = leftGains[gainIdx];
                 CostGain_t rightGain = rightGains[gainIdx];
 
@@ -197,14 +197,14 @@ namespace mloggapa {
     }
 
     void bipartiteGraphReordering (
-        const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
-        const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, BisectionRunRecord& record,
-        int maxIterations = 20
+        const std::vector<std::vector<double>>& demandMatrix, std::vector<uint32_t>& vertices,
+        const VectorLimits_t& vectorLimits, uint32_t maxDepth, bool parallelize, BisectionRunRecord& record,
+        uint32_t maxIterations = 20
     ) {
-        int nVertices = vertices.size();
+        uint32_t nVertices = vertices.size();
         std::vector<std::vector<double>> demandMatrixCopy(nVertices, std::vector<double>(nVertices, 0.0));
-        for (int i = 0; i < vertices.size(); i++) {
-            for (int j = 0; j < vertices.size(); j++) {
+        for (uint32_t i = 0; i < vertices.size(); i++) {
+            for (uint32_t j = 0; j < vertices.size(); j++) {
                 demandMatrixCopy[i][j] = (
                     demandMatrix[vertices[i]][vertices[j]] + demandMatrix[vertices[j]][vertices[i]]
                 );

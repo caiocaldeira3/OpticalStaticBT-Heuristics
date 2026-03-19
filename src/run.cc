@@ -14,12 +14,13 @@
 #include <core/logLevel.hh>
 #include <treebuilders/optbst.hh>
 #include <treebuilders/greedy.hh>
-#include <convertgraph.hh>
 #include <recursiveGraphBisection.hh>
+#include <util/forwardIndex.hh>
+#include <util/forwardIndexFactory.hh>
 
 struct Options {
     std::string algorithm;
-    int maxDepth;
+    size_t maxDepth;
     int maxIterations;
     std::string datasetName;
     std::string outputDirectory;
@@ -31,7 +32,7 @@ void parseArguments(int argc, char* argv[], Options& options) {
 
     parser.add_argument("--algorithm")
         .store_into(options.algorithm)
-        .help("the name of the algorithm");
+        .help("the name of the algorithm (mloga or loggap)");
 
     parser.add_argument("--max-depth")
         .store_into(options.maxDepth)
@@ -44,12 +45,12 @@ void parseArguments(int argc, char* argv[], Options& options) {
 
     parser.add_argument("--dataset-name")
         .store_into(options.datasetName)
-        .help("the name of the input in weights folder");
+        .help("the name of the dataset");
 
     parser.add_argument("--output-directory")
         .default_value("output")
         .store_into(options.outputDirectory)
-        .help("the name of the input in weights folder");
+        .help("the name of the output directory");
 
     parser.add_argument("--verbose")
         .flag()
@@ -123,58 +124,63 @@ loadDataset(const std::string& filename) {
     return demandMatrix;
 }
 
-int main (int argc, char* argv[]) {
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    srand(seed);
+pisa::verticeRange<std::vector<uint32_t>::iterator> createVerticeRange(
+    std::vector<uint32_t>& vertices,
+    const pisa::forwardIndex& fwdIndex,
+    std::vector<double>& gains
+) {
+    return pisa::verticeRange(vertices.begin(), vertices.end(), std::cref(fwdIndex), std::ref(gains));
+}
 
+double computeBalancedBinaryTreeCostAfterReordering(
+    std::vector<uint32_t> vertices,
+    const std::vector<std::vector<double>>& demandMatrix
+) {
+    uint32_t nVertices = vertices.size();
+    auto reassignedDemandMatrix = reconfigureDemandMatrix(vertices, demandMatrix);
+
+    // Build tree with canonical 0..n-1 ordering (positions, not original IDs)
+    std::vector<uint32_t> canonicalOrder(nVertices);
+    std::iota(canonicalOrder.begin(), canonicalOrder.end(), 0);
+
+    std::vector<std::vector<uint32_t>> tree(nVertices, std::vector<uint32_t>());
+    buildBalancedBinaryTree(canonicalOrder, tree, {0, nVertices}, -1);
+
+    return treeCost(tree, reassignedDemandMatrix);
+}
+
+int main (int argc, char* argv[]) {
     Options options;
     parseArguments(argc, argv, options);
 
     g_logLevel = options.verbose ? LogLevel::Debug : LogLevel::Info;
 
     const auto& demandMatrix = loadDataset(options.datasetName);
-    std::cout << "Loaded dataset with " << demandMatrix.size() << " vertices." << std::endl;
+    log(LogLevel::Info) << "Loaded dataset with " << demandMatrix.size() << " vertices." << std::endl;
 
-    // create if and else for the value of options.algorithm and call the appropriate function, if it mloga or mloggapa
-    convertgraph::bipartiteGraph graph;
-    if (options.algorithm == "mloga") {
-        graph = convertgraph::convertGraphToBipartiteGraphMLogA(demandMatrix);
-    } else if (options.algorithm == "mloggapa") {
-        graph = convertgraph::convertGraphToBipartiteGraphMLogGapA(demandMatrix);
-    } else {
-        std::cerr << "Error: Unknown algorithm '" << options.algorithm << "'." << std::endl;
-        return 1;
-    }
-
-    // create output directory if it does not exist
-    std::filesystem::create_directories(options.outputDirectory);
-
-    BisectionRunRecord record(RunConfig{
-        .algorithm       = options.algorithm,
-        .datasetName     = options.datasetName,
-        .maxIterations   = options.maxIterations,
-        .maxDepth        = options.maxDepth,
-        .outputDirectory = options.outputDirectory,
-    });
-
-    // create a vector of vertices with size numVertices and fill it with indices from 0 to numVertices - 1
-    int numVertices = static_cast<int>(demandMatrix.size());
-    std::vector<int> vertices(numVertices);
+    uint32_t numVertices = demandMatrix.size();
+    std::vector<uint32_t> vertices(numVertices);
     std::iota(vertices.begin(), vertices.end(), 0);
 
-    std::cout << "Running algorithm: " << options.algorithm 
+    log(LogLevel::Debug) << "Running algorithm: " << options.algorithm
                 << " with max depth: " << options.maxDepth
                 << " and max iterations: " << options.maxIterations << std::endl;
 
-    double totalCost = graphBisection::computeBalancedBinaryTreeCostAfterReordering(
-        vertices, graph, demandMatrix, options.maxDepth, options.maxIterations, record
-    );
-    std::cout << "Total cost after reordering: " << totalCost << std::endl;
+    pisa::forwardIndex fwdIndex;
+    if (options.algorithm == "loggap") {
+        log(LogLevel::Info) << "Creating forward index for LogGap..." << std::endl;
+        fwdIndex = pisa::createLogGapForwardIndex(demandMatrix);
+    } else if (options.algorithm == "mloga") {
+        log(LogLevel::Info) << "Creating forward index for MLOGA..." << std::endl;
+        fwdIndex = pisa::createMlogaForwardIndex(demandMatrix);
+    } else {
+        throw std::runtime_error("Unknown algorithm: " + options.algorithm);
+    }
+    std::vector<double> gains(numVertices, 0.0);
+    auto verticesRange = createVerticeRange(vertices, fwdIndex, gains);
 
-    // compute the cost of the MLogA algorithm
-    double mlogACost = algorithm::computeMLogACost(vertices, demandMatrix);
-    std::cout << "MLogA cost: " << mlogACost << std::endl;
-    record.recordMLogACost(mlogACost);
+    pisa::recursiveGraphBisection(verticesRange, options.maxDepth, options.maxIterations, options.maxDepth - 6, nullptr);
 
-    record.appendToCsv();
+    double totalCost = computeBalancedBinaryTreeCostAfterReordering(vertices, demandMatrix);
+    log(LogLevel::Info) << "Total cost after reordering: " << totalCost << std::endl;
 }

@@ -14,7 +14,7 @@ namespace basic {
 
 struct CostGain_t {
     double costGain;
-    std::pair<int, int> vertices;
+    std::pair<uint32_t, uint32_t> vertices;
 };
 
 bool compareCostGainDecreasing (const CostGain_t& a, const CostGain_t& b) {
@@ -22,15 +22,15 @@ bool compareCostGainDecreasing (const CostGain_t& a, const CostGain_t& b) {
 }
 
 double computeCostGainBasic (
-    int leftVertex, int rightVertex,
+    uint32_t leftVertex, uint32_t rightVertex,
     const std::vector<std::vector<double>>& demandMatrix,
-    const std::vector<int>& vertices,
+    const std::vector<uint32_t>& vertices,
     const VectorLimits_t& leftLimits, const VectorLimits_t& rightLimits
 ) {
     double costGain = 0;
 
-    for (int idx = leftLimits.leftLimit; idx < leftLimits.rightLimit; idx++) {
-        int othLeft = vertices[idx];
+    for (uint32_t idx = leftLimits.leftLimit; idx < leftLimits.rightLimit; idx++) {
+        uint32_t othLeft = vertices[idx];
         if (othLeft == leftVertex || othLeft == rightVertex)
             continue;
 
@@ -41,8 +41,8 @@ double computeCostGainBasic (
 
     }
 
-    for (int idx = rightLimits.leftLimit; idx < rightLimits.rightLimit; idx++) {
-        int othRight = vertices[idx];
+    for (uint32_t idx = rightLimits.leftLimit; idx < rightLimits.rightLimit; idx++) {
+        uint32_t othRight = vertices[idx];
         if (othRight == leftVertex || othRight == rightVertex)
             continue;
 
@@ -56,27 +56,27 @@ double computeCostGainBasic (
 }
 
 void graphReordering (
-    const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
-    const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, BisectionRunRecord& record,
-    int maxIterations = 20
+    const std::vector<std::vector<double>>& demandMatrix, std::vector<uint32_t>& vertices,
+    const VectorLimits_t& vectorLimits, uint32_t maxDepth, bool parallelize, BisectionRunRecord& record,
+    uint32_t maxIterations = 20
 ) {
     if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 2)
         return;
 
-    int numIterations = 0;
-    int mid = (vectorLimits.leftLimit + vectorLimits.rightLimit) / 2;
+    uint32_t numIterations = 0;
+    uint32_t mid = (vectorLimits.leftLimit + vectorLimits.rightLimit) / 2;
     VectorLimits_t leftLimits = { vectorLimits.leftLimit, mid };
     VectorLimits_t rightLimits = { mid, vectorLimits.rightLimit };
 
     while (numIterations++ < maxIterations) {
         std::vector<CostGain_t> costGains;
-        std::set<int> swappedVertices;
+        std::set<uint32_t> swappedVertices;
 
         // #pragma omp parallel for collapse(2) shared(costGains) schedule(dynamic)
-        for (int leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
-            for (int rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
-                int leftVertex = vertices[leftIdx];
-                int rightVertex = vertices[rightIdx];
+        for (uint32_t leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
+            for (uint32_t rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
+                uint32_t leftVertex = vertices[leftIdx];
+                uint32_t rightVertex = vertices[rightIdx];
                 double costGain = computeCostGainBasic(
                     leftVertex, rightVertex, demandMatrix, vertices, leftLimits, rightLimits
                 );
@@ -88,15 +88,15 @@ void graphReordering (
             }
         }
 
-        int bestCostGainIdx = std::max_element(
+        uint32_t bestCostGainIdx = std::max_element(
             costGains.begin(), costGains.end(), compareCostGainDecreasing
         ) - costGains.begin();
 
         if (costGains[bestCostGainIdx].costGain <= 0)
             break;
 
-        int leftIdx = costGains[bestCostGainIdx].vertices.first;
-        int rightIdx = costGains[bestCostGainIdx].vertices.second;
+        uint32_t leftIdx = costGains[bestCostGainIdx].vertices.first;
+        uint32_t rightIdx = costGains[bestCostGainIdx].vertices.second;
 
         std::swap(vertices[leftIdx], vertices[rightIdx]);
 

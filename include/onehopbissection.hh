@@ -12,12 +12,12 @@
 namespace onehop {
     struct CostGain_t {
         double costGain;
-        int vIdx;
+        uint32_t vIdx;
     };
 
     struct NodeSectionInfo_t {
-        int sameNeighbors;
-        int othNeighBors;
+        uint32_t sameNeighbors;
+        uint32_t othNeighBors;
         double sameSumWeight;
         double othSumWeight;
     };
@@ -27,15 +27,15 @@ namespace onehop {
     }
 
     NodeSectionInfo_t computeVertexInfo (
-        int vIdx, const std::vector<std::vector<double>>& demandMatrix,
-        const std::vector<int>& vertices,
+        uint32_t vIdx, const std::vector<std::vector<double>>& demandMatrix,
+        const std::vector<uint32_t>& vertices,
         const VectorLimits_t& fromLimits, const VectorLimits_t& toLimits
     ) {
         NodeSectionInfo_t info = { 0, 0, 0, 0 };
-        int vertex = vertices[vIdx];
+        uint32_t vertex = vertices[vIdx];
 
-        for (int othIdx = fromLimits.leftLimit; othIdx < fromLimits.rightLimit; othIdx++) {
-            int othVertex = vertices[othIdx];
+        for (uint32_t othIdx = fromLimits.leftLimit; othIdx < fromLimits.rightLimit; othIdx++) {
+            uint32_t othVertex = vertices[othIdx];
             double weight = demandMatrix[vertex][othVertex] + demandMatrix[othVertex][vertex];
             if (othVertex == vertex || isClose(weight, 0))
                 continue;
@@ -44,8 +44,8 @@ namespace onehop {
             info.sameSumWeight += weight;
         }
 
-        for (int othIdx = toLimits.leftLimit; othIdx < toLimits.rightLimit; othIdx++) {
-            int othVertex = vertices[othIdx];
+        for (uint32_t othIdx = toLimits.leftLimit; othIdx < toLimits.rightLimit; othIdx++) {
+            uint32_t othVertex = vertices[othIdx];
             double weight = demandMatrix[vertex][othVertex] + demandMatrix[othVertex][vertex];
             if (othVertex == vertex || isClose(weight, 0))
                 continue;
@@ -58,14 +58,14 @@ namespace onehop {
     }
 
     CostGain_t computeCostGain (
-        int vIdx, const std::vector<std::vector<double>>& demandMatrix,
-        const std::vector<int>& vertices,
+        uint32_t vIdx, const std::vector<std::vector<double>>& demandMatrix,
+        const std::vector<uint32_t>& vertices,
         const VectorLimits_t& fromLimits, const VectorLimits_t& toLimits
     ) {
         double costGain;
-        int vertex = vertices[vIdx];
-        int nTo = toLimits.rightLimit - toLimits.leftLimit;
-        int nFrom = fromLimits.rightLimit - fromLimits.leftLimit;
+        uint32_t vertex = vertices[vIdx];
+        uint32_t nTo = toLimits.rightLimit - toLimits.leftLimit;
+        uint32_t nFrom = fromLimits.rightLimit - fromLimits.leftLimit;
 
         NodeSectionInfo_t vInfo = computeVertexInfo(vIdx, demandMatrix, vertices, fromLimits, toLimits);
 
@@ -87,36 +87,36 @@ namespace onehop {
     }
 
     void graphReordering (
-        const std::vector<std::vector<double>>& demandMatrix, std::vector<int>& vertices,
-        const VectorLimits_t& vectorLimits, int maxDepth, bool parallelize, BisectionRunRecord& record,
-        int maxIterations = 20
+        const std::vector<std::vector<double>>& demandMatrix, std::vector<uint32_t>& vertices,
+        const VectorLimits_t& vectorLimits, uint32_t maxDepth, bool parallelize, BisectionRunRecord& record,
+        uint32_t maxIterations = 20
     ) {
         if (maxDepth == 0 || vectorLimits.rightLimit - vectorLimits.leftLimit <= 3)
             return;
 
-        int numIterations = 0;
-        int mid = (vectorLimits.leftLimit + vectorLimits.rightLimit) / 2;
+        uint32_t numIterations = 0;
+        uint32_t mid = (vectorLimits.leftLimit + vectorLimits.rightLimit) / 2;
         VectorLimits_t leftLimits = { vectorLimits.leftLimit, mid };
         VectorLimits_t rightLimits = { mid, vectorLimits.rightLimit };
 
         while (numIterations++ < maxIterations) {
-            int numSwapped = 0;
+            uint32_t numSwapped = 0;
             double totalCostGain = 0;
             std::vector<CostGain_t> leftGains, rightGains;
-            std::set<int> swappedVertices;
+            std::set<uint32_t> swappedVertices;
 
-            for (int leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
+            for (uint32_t leftIdx = leftLimits.leftLimit; leftIdx < leftLimits.rightLimit; leftIdx++) {
                 leftGains.push_back(computeCostGain(leftIdx, demandMatrix, vertices, leftLimits, rightLimits));
             }
 
-            for (int rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
+            for (uint32_t rightIdx = rightLimits.leftLimit; rightIdx < rightLimits.rightLimit; rightIdx++) {
                 rightGains.push_back(computeCostGain(rightIdx, demandMatrix, vertices, rightLimits, leftLimits));
             }
 
             std::sort(leftGains.begin(), leftGains.end(), compareCostGainDecreasing);
             std::sort(rightGains.begin(), rightGains.end(), compareCostGainDecreasing);
 
-            for (int gainIdx = 0; gainIdx < std::min(leftGains.size(), rightGains.size()); gainIdx++) {
+            for (uint32_t gainIdx = 0; gainIdx < std::min(leftGains.size(), rightGains.size()); gainIdx++) {
                 CostGain_t leftGain = leftGains[gainIdx];
                 CostGain_t rightGain = rightGains[gainIdx];
 

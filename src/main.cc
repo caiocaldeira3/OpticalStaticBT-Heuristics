@@ -59,10 +59,10 @@ int main (int argc, char* argv[]) {
     }
 
     std::ifstream iFile("weights/" + inputName);
-    int nVertices;
+    uint32_t nVertices;
     iFile >> nVertices;
 
-    int src, dst;
+    uint32_t src, dst;
     double flowSize;
     std::vector<std::vector<double>> demandMatrix(nVertices, std::vector<double>(nVertices, 0.0));
     while (iFile >> src >> dst >> flowSize) {
@@ -81,7 +81,7 @@ int main (int argc, char* argv[]) {
         }
     }
 
-    std::vector<int> vertices(nVertices);
+    std::vector<uint32_t> vertices(nVertices);
     std::iota(vertices.begin(), vertices.end(), 0);
 
     std::vector<Ordering_t> allOrderAlgs = {

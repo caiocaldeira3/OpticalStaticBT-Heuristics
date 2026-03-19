@@ -7,15 +7,15 @@
 
 struct Response_t {
     double cost;
-    std::vector<int> graphOrdering;
+    std::vector<uint32_t> graphOrdering;
 };
 
 double testGraphOrder (
-    const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix
+    const std::vector<uint32_t>& vertices, const std::vector<std::vector<double>>& demandMatrix
 ) {
-    int nVertices = vertices.size();
+    uint32_t nVertices = vertices.size();
 
-    std::vector<std::vector<int>> tree(nVertices, std::vector<int>());
+    std::vector<std::vector<uint32_t>> tree(nVertices, std::vector<uint32_t>());
     buildBalancedBinaryTree(vertices, tree, {0, nVertices}, -1);
 
     std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
@@ -24,7 +24,7 @@ double testGraphOrder (
 }
 
 double testOBST (
-    const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix
+    const std::vector<uint32_t>& vertices, const std::vector<std::vector<double>>& demandMatrix
 ) {
     std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
 
@@ -32,7 +32,7 @@ double testOBST (
 }
 
 double testGreedy (
-    const std::vector<int>& vertices, const std::vector<std::vector<double>>& demandMatrix
+    const std::vector<uint32_t>& vertices, const std::vector<std::vector<double>>& demandMatrix
 ) {
     std::vector<std::vector<double>> reorderedDemand = reconfigureDemandMatrix(vertices, demandMatrix);
 
@@ -43,10 +43,10 @@ template<typename Func>
 void runTreeBuilder (
     const std::string& flag, const std::string& label,
     const std::string& treeBuilder,
-    Func treeBuilderFn, std::vector<int>& vertices,
+    Func treeBuilderFn, std::vector<uint32_t>& vertices,
     const std::vector<std::vector<double>>& demandMatrix,
-    bool bounded, bool parallelize, int nVertices,
-    const std::string& baseFolder, int testNumber
+    bool bounded, bool parallelize, uint32_t nVertices,
+    const std::string& baseFolder, uint32_t testNumber
 ) {
     std::cout << treeBuilder + " " + label + " Bissection" << std::endl;
     const clock_t beginTime = std::clock();
@@ -73,10 +73,10 @@ struct Ordering_t {
     std::string flag, label;
     std::function<void(
         const std::vector<std::vector<double>>&,
-        std::vector<int>&,
-        VectorLimits_t,int,bool,BisectionRunRecord&,int
+        std::vector<uint32_t>&,
+        VectorLimits_t,uint32_t,bool,BisectionRunRecord&,uint32_t
     )> func;
-    std::vector<int> vertices;
+    std::vector<uint32_t> vertices;
 };
 
 inline constexpr auto noop = [](auto&&...) {};
@@ -84,17 +84,17 @@ inline constexpr auto noop = [](auto&&...) {};
 template<typename Func>
 void runOrdering (
     const std::string& flag, const std::string& label,
-    Func reorderFn, std::vector<int>& orderVec,
+    Func reorderFn, std::vector<uint32_t>& orderVec,
     const std::vector<std::vector<double>>& demandMatrix,
-    bool bounded, bool parallelize, int nVertices,
-    const std::string& baseFolder, int testNumber, int maxIterations = 20
+    bool bounded, bool parallelize, uint32_t nVertices,
+    const std::string& baseFolder, uint32_t testNumber, int maxIterations = 20
 ) {
     BisectionRunRecord record(RunConfig{.maxIterations = maxIterations, .outputDirectory = baseFolder + flag});
 
     std::cout << label << std::endl;
     VectorLimits_t limits{0, nVertices};
-    int maxDepth = (bounded ?
-        static_cast<int>(std::ceil(std::log(nVertices)/std::log(2))) + 1: INF
+    uint32_t maxDepth = (bounded ?
+        static_cast<uint32_t>(std::ceil(std::log(nVertices)/std::log(2))) + 1: LINF
     );
     const clock_t beginTime = std::clock();
     reorderFn(demandMatrix, orderVec, limits, maxDepth, parallelize, record, maxIterations);
@@ -105,7 +105,7 @@ void runOrdering (
     std::ofstream orderingFile(
         baseFolder + flag + "/orderings/" + std::to_string(testNumber) + ".out"
     );
-    for (int vIdx = 0; vIdx < nVertices; vIdx++) {
+    for (uint32_t vIdx = 0; vIdx < nVertices; vIdx++) {
         orderingFile << orderVec[vIdx] << " ";
     }
     orderingFile << std::endl;

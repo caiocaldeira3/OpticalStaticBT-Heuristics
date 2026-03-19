@@ -6,7 +6,23 @@ set(SRCDIR ${CMAKE_SOURCE_DIR}/src)
 set(TSTDIR ${CMAKE_SOURCE_DIR}/tests)
 set(INC_DIR ${CMAKE_SOURCE_DIR}/include)
 
+# === Disable oneTBB's internal tests and examples ===
+# We force these variables into the cache so oneTBB respects them
+set(TBB_TEST OFF CACHE BOOL "" FORCE)
+set(TBB_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(TBB_STRICT OFF CACHE BOOL "" FORCE) # Prevents failing on compiler warning
+
 include_directories(${INC_DIR})
+
+# ===. Fetch oneTBB ===
+include(FetchContent)
+FetchContent_Declare(
+  onetbb
+  GIT_REPOSITORY https://github.com/uxlfoundation/oneTBB.git
+  GIT_TAG        v2021.12.0 # Use a stable release tag!
+  GIT_SHALLOW    ON         # Only download this specific commit to save time
+)
+FetchContent_MakeAvailable(onetbb)
 
 # === GoogleTest ===
 include(FetchContent)
@@ -27,11 +43,14 @@ add_executable(pop ${SRCDIR}/popGen.cc)
 add_executable(work ${SRCDIR}/workload.cc)
 add_executable(run ${SRCDIR}/run.cc)
 
+# === Link oneTBB ===
+target_link_libraries(run PRIVATE TBB::tbb)
+
 # === Test executable ===
 add_executable(run_tests
-	${TSTDIR}/hello_test.cc
-	${TSTDIR}/include/test_convertgraph.cc
 	${TSTDIR}/include/test_bisectionRunRecord.cc
+	${TSTDIR}/include/test_forwardIndex.cc
+	${TSTDIR}/include/test_forwardIndexFactory.cc
 )
 
 # === Link GoogleTest to Executable ===
